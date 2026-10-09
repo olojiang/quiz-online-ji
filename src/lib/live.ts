@@ -1,6 +1,7 @@
 import { FEATURE_GROUPS } from "@/lib/features";
 import { sql } from "./db";
-import type { PollConfig, QuizConfig, QuizState, RateConfig } from "./types";
+import type { LotteryConfig, PollConfig, QuizConfig, QuizState, RateConfig } from "./types";
+import { eligible, lotteryPeople, lotteryState, lotteryWinners, prizeSummary } from "./lottery";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
@@ -155,6 +156,38 @@ export async function buildLive(it: Row, opts: { participantId?: string; mode: "
     out.comments = st.comments.slice(0, 200).map((c, i) => ({ id: i, text: c.text, created_at: c.created_at, nickname: st.anonymous ? "" : c.nickname, group_name: st.anonymous || !FEATURE_GROUPS ? "" : c.group_name }));
     out.commentCount = st.comments.length;
     if (opts.mode === "admin") out.byGroup = FEATURE_GROUPS ? st.byGroup : [];
+    return out;
+  }
+  if (it.type === "lottery") {
+    const cfg = it.config as LotteryConfig;
+    const st = lotteryState(it);
+    const [people, winners] = await Promise.all([lotteryPeople(it), lotteryWinners(it.id)]);
+    const prizes = prizeSummary(cfg, winners);
+    const curPrize = typeof st.prize === "number" && prizes[st.prize] ? st.prize : null;
+    // pool for the prize being drawn (or the next one with open slots) — this is the 抽奖池 everyone sees
+    const poolPrize = curPrize ?? Math.max(0, prizes.findIndex((p) => p.remaining > 0));
+    const pool = eligible(cfg, people, winners, poolPrize);
+    const lastIds = new Set<number>((it.state?.lastIds as number[]) || []);
+    const active = winners.filter((w) => !w.voided);
+    const out: Row = {
+      ...base, phase: st.phase, prize: curPrize, drawSeq: st.drawSeq || 0, prizes, poolSize: pool.length,
+      participatedOnly: !!cfg.participatedOnly, allowRepeat: !!cfg.allowRepeat,
+      winners: active.map((w) => ({ id: w.id, prize_index: w.prize_index, prize_name: w.prize_name, nickname: w.nickname, drawn_at: w.drawn_at, latest: lastIds.has(w.id) })),
+    };
+    if (opts.mode === "audience") {
+      out.mine = active.filter((w) => w.participant_id === pid).map((w) => ({ id: w.id, prize_index: w.prize_index, prize_name: w.prize_name, drawn_at: w.drawn_at }));
+      out.inPool = pool.some((p) => p.pid === pid);
+      return out;
+    }
+    // names only, for the cosmetic rolling animation on the screen (winners are picked on the server at reveal)
+    out.rollNames = (pool.length ? pool : people).slice(0, 400).map((p) => p.nickname);
+    if (opts.mode === "admin") {
+      out.winners = winners.map((w) => ({ id: w.id, prize_index: w.prize_index, prize_name: w.prize_name, participant_id: w.participant_id, nickname: w.nickname, round: w.round, voided: w.voided, voided_at: w.voided_at, drawn_at: w.drawn_at, latest: lastIds.has(w.id) }));
+      const winSet = new Set(active.map((w) => w.participant_id));
+      const poolSet = new Set(pool.map((p) => p.pid));
+      out.people = people.map((p) => ({ ...p, won: winSet.has(p.pid), inPool: poolSet.has(p.pid) }));
+      out.joined = people.length;
+    }
     return out;
   }
   return base;

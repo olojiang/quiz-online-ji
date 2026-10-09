@@ -1,4 +1,4 @@
-export type InteractionType = "qa" | "poll" | "quiz" | "open" | "rate";
+export type InteractionType = "qa" | "poll" | "quiz" | "open" | "rate" | "lottery";
 
 export const TYPE_LABEL: Record<string, string> = {
   qa: "提问",
@@ -6,6 +6,7 @@ export const TYPE_LABEL: Record<string, string> = {
   quiz: "测验",
   open: "开放话题",
   rate: "评分",
+  lottery: "抽奖",
 };
 
 export interface PollConfig { question: string; options: string[]; multi: boolean }
@@ -15,6 +16,10 @@ export interface QuizState { phase?: "idle" | "question" | "reveal" | "finished"
 export interface OpenConfig { prompt: string }
 export interface RateConfig { items: string[]; scale: "star" | "score"; max: number; allowComment: boolean; anonymous: boolean }
 export interface RateState { closed?: boolean }
+export interface LotteryPrize { name: string; count: number; desc: string }
+export interface LotteryConfig { prizes: LotteryPrize[]; participatedOnly: boolean; allowRepeat: boolean; exclude: string[] }
+/** phase: idle 待开始 → rolling 抽奖中 (大屏滚动) → revealed 已揭晓. prize = index being drawn; drawSeq increments on every reveal. */
+export interface LotteryState { phase?: "idle" | "rolling" | "revealed"; prize?: number; drawSeq?: number; rollingAt?: number; revealedAt?: number }
 export interface QAConfig { autoApprove?: boolean }
 
 export const SCREEN_THEMES: Record<string, { label: string; color: string }> = {

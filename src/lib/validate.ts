@@ -4,12 +4,27 @@ type Any = any;
 export function validateInteraction(type: string, titleIn: unknown, cfgIn: unknown): { title: string; config: Any } | { error: string } {
   const title = String(titleIn || "").trim().slice(0, 120);
   const cfg: Any = cfgIn && typeof cfgIn === "object" ? cfgIn : {};
-  if (!["qa", "poll", "quiz", "open", "rate"].includes(type)) return { error: "不支持的互动类型" };
+  if (!["qa", "poll", "quiz", "open", "rate", "lottery"].includes(type)) return { error: "不支持的互动类型" };
   if (!title) return { error: "请输入标题" };
   if (type === "qa") return { title, config: { autoApprove: !!cfg.autoApprove } };
   if (type === "open") {
     const prompt = String(cfg.prompt || title).trim().slice(0, 300);
     return { title, config: { prompt } };
+  }
+  if (type === "lottery") {
+    const raw = Array.isArray(cfg.prizes) ? cfg.prizes : [];
+    const prizes = raw
+      .map((p: Any) => ({ name: String(p?.name ?? "").trim().slice(0, 40), count: Math.round(Number(p?.count)), desc: String(p?.desc ?? "").trim().slice(0, 120) }))
+      .filter((p: Any) => p.name || p.desc);
+    if (!prizes.length) return { error: "抽奖至少需要 1 个奖项" };
+    if (prizes.length > 20) return { error: "奖项最多 20 个" };
+    for (let i = 0; i < prizes.length; i++) {
+      if (!prizes[i].name) return { error: `第 ${i + 1} 个奖项缺少名称` };
+      if (!Number.isInteger(prizes[i].count) || prizes[i].count < 1 || prizes[i].count > 200) return { error: `「${prizes[i].name}」的名额需在 1 到 200 之间` };
+    }
+    if (new Set(prizes.map((p: Any) => p.name)).size !== prizes.length) return { error: "奖项名称不能重复" };
+    const exclude = [...new Set((Array.isArray(cfg.exclude) ? cfg.exclude : []).map((x: unknown) => String(x ?? "").slice(0, 64)).filter(Boolean))].slice(0, 2000);
+    return { title, config: { prizes, participatedOnly: !!cfg.participatedOnly, allowRepeat: !!cfg.allowRepeat, exclude } };
   }
   if (type === "rate") {
     const items = (Array.isArray(cfg.items) ? cfg.items : []).map((o: unknown) => String(o ?? "").trim().slice(0, 60)).filter(Boolean);

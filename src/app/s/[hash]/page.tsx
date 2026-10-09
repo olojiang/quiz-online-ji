@@ -7,6 +7,7 @@ import { useT } from "@/components/i18n";
 import { screenPalette, screenVars } from "@/lib/palette";
 import { StarRow } from "@/components/Rating";
 import { FEATURE_GROUPS } from "@/lib/features";
+import { LotteryScreen } from "@/components/LotteryScreen";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -80,6 +81,9 @@ export default function ScreenPage() {
       <div className="absolute left-0 top-0" style={{ width: `${100 / (fit * zoom)}vw`, height: `${100 / (fit * zoom)}vh`, transform: `scale(${fit * zoom})`, transformOrigin: "0 0" }}>
       {showWelcome ? (
         <Welcome name={ev.name} desc={ev.description} url={guestUrl} waiting={channel !== "welcome" && !live} />
+      ) : live.type === "lottery" && live.phase !== "idle" ? (
+        // drawing / revealed: full-width stage; a small QR stays in the corner
+        <LotteryScreen live={live} card="var(--s-card)" guestQR={guestUrl ? <div className="absolute right-8 top-8 flex flex-col items-center gap-2 opacity-90"><div className="bg-white rounded-xl p-2 shadow-lg"><QR text={guestUrl} size={110} /></div><span className="text-base font-medium">{t("扫码参与")}</span></div> : null} />
       ) : (
         <div className="h-full flex">
           {/* left column */}
@@ -90,7 +94,7 @@ export default function ScreenPage() {
           {/* content */}
           <main className="flex-1 min-w-0 pr-8 pb-28 flex flex-col">
             <div className="h-[110px] flex items-center gap-3 text-[30px]">
-              <Icon name={live.type === "qa" ? "qa" : live.type === "poll" ? "poll" : live.type === "quiz" ? "quiz" : live.type === "rate" ? "rate" : "open"} className="w-9 h-9" />
+              <Icon name={live.type === "qa" ? "qa" : live.type === "poll" ? "poll" : live.type === "quiz" ? "quiz" : live.type === "rate" ? "rate" : live.type === "lottery" ? "lottery" : "open"} className="w-9 h-9" />
               {live.type === "qa" ? (
                 <div className="relative">
                   <select value={sort} onChange={(e) => { setSort(e.target.value as "hot" | "time"); setPage(0); }} className="appearance-none bg-transparent pr-10 outline-none cursor-pointer font-medium">
@@ -101,6 +105,7 @@ export default function ScreenPage() {
                 </div>
               ) : <span className="font-medium truncate">{live.title}</span>}
               {live.type === "qa" && <span className="ml-auto text-2xl font-semibold text-[color:var(--s-muted)]">{t("{n} 个问题", { n: live.approvedCount })}</span>}
+              {live.type === "lottery" && <span className="ml-auto shrink-0 flex items-center gap-2 text-2xl font-semibold text-[color:var(--s-muted)]"><Icon name="users" className="w-7 h-7" />{t("抽奖池 {n} 人", { n: live.poolSize })}</span>}
               {live.type === "rate" && <span className="ml-auto shrink-0 flex items-center gap-4 text-2xl font-semibold text-[color:var(--s-muted)]">{live.closed && <span className="chip text-xl px-4 py-1.5" style={{ background: "var(--s-badge-bg)", color: "var(--s-badge-fg)" }}>{t("评分已结束")}</span>}<span className="flex items-center gap-2"><Icon name="users" className="w-7 h-7" />{t("{n} 人已评分", { n: live.raters })}</span></span>}
             </div>
             <div className="flex-1 min-h-0">
@@ -108,6 +113,7 @@ export default function ScreenPage() {
               {live.type === "poll" && <PollScreen live={live} card="var(--s-card)" />}
               {live.type === "quiz" && <QuizScreen live={live} card="var(--s-card)" />}
               {live.type === "rate" && <RateScreen live={live} card="var(--s-card)" theme={previewTheme || ev.screen_theme} />}
+              {live.type === "lottery" && <LotteryScreen live={live} card="var(--s-card)" />}
               {live.type === "open" && <OpenScreen live={live} items={items.slice(pg * perPage * 2, (pg + 1) * perPage * 2)} card="var(--s-card)" />}
             </div>
           </main>

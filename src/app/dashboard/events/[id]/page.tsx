@@ -20,7 +20,7 @@ import { StatusControl } from "@/components/console/StatusControl";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const TYPE_ICON: Record<string, string> = { qa: "qa", poll: "poll", quiz: "quiz", open: "open", rate: "rate" };
+const TYPE_ICON: Record<string, string> = { qa: "qa", poll: "poll", quiz: "quiz", open: "open", rate: "rate", lottery: "lottery" };
 
 export default function EventConsole() {
   const { id } = useParams<{ id: string }>();
@@ -153,7 +153,7 @@ export default function EventConsole() {
               {selected.type === "qa" ? (
                 <QAModeration interaction={selected} event={event} perms={perms} />
               ) : (
-                <LiveResults interaction={selected} perms={perms} />
+                <LiveResults interaction={selected} perms={perms} isCurrent={selected.id === event.current_interaction_id} onSetCurrent={() => setCurrent(selected.id)} />
               )}
             </div>
           )}

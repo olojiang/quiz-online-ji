@@ -20,7 +20,23 @@ export async function PATCH(req: Request, { params }: Ctx) {
     const v = validateInteraction(it.type, b.title ?? it.title, cfg);
     if ("error" in v) return json({ error: v.error }, 400);
     if (it.type === "qa") v.config.autoApprove = !!it.config?.autoApprove;
+    if (it.type === "lottery") {
+      const won = await sql`SELECT prize_index, count(*) FILTER (WHERE NOT voided)::int AS n, count(*)::int AS total FROM qoj_lottery_winners WHERE interaction_id = ${it.id} GROUP BY prize_index`;
+      if (won.length) {
+        if (v.config.prizes.length !== (it.config?.prizes || []).length) return json({ error: "已有抽奖记录，不能增删奖项；如需调整请先「重置」" }, 400);
+        for (const w of won) {
+          const p = v.config.prizes[w.prize_index];
+          if (p && p.count < w.n) return json({ error: `「${p.name}」已抽出 ${w.n} 人，名额不能少于 ${w.n}` }, 400);
+        }
+      }
+    }
     await sql`UPDATE qoj_interactions SET title = ${v.title}, config = ${JSON.stringify(v.config)}::jsonb WHERE id = ${it.id}`;
+    if (it.type === "lottery") {
+      // keep the recorded prize name in step with a renamed prize
+      const names = (v.config.prizes as { name: string }[]).map((p) => p.name);
+      const idx = names.map((_, i) => i);
+      await sql`UPDATE qoj_lottery_winners w SET prize_name = n.name FROM unnest(${idx}::int[], ${names}::text[]) AS n(i, name) WHERE w.interaction_id = ${it.id} AND w.prize_index = n.i AND w.prize_name <> n.name`;
+    }
   }
   const rows = await sql`SELECT * FROM qoj_interactions WHERE id = ${it.id}`;
   return json({ interaction: rows[0] });

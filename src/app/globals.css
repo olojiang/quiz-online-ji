@@ -75,4 +75,25 @@ html, body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
 .g-frost { background: rgba(255,255,255,.82); backdrop-filter: saturate(1.6) blur(16px); -webkit-backdrop-filter: saturate(1.6) blur(16px); }
 @keyframes g-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
 .g-in { animation: g-in .45s cubic-bezier(.2,.7,.2,1) both; }
+/* ---- 抽奖 (lottery) ---- */
+@keyframes lt-roll { from { transform: translateY(-38%); opacity: .25; filter: blur(3px) } to { transform: none; opacity: 1; filter: none } }
+.lt-roll { display: inline-block; animation: lt-roll .07s linear; }
+.lt-roll-slow { animation-duration: .18s; }
+.lt-slot { position: relative; overflow: hidden; box-shadow: inset 0 0 0 2px var(--s-border), 0 20px 50px -20px rgba(0,0,0,.35); }
+.lt-slot::before, .lt-slot::after { content: ""; position: absolute; left: 0; right: 0; height: 28%; pointer-events: none; }
+.lt-slot::before { top: 0; background: linear-gradient(180deg, rgba(0,0,0,.14), transparent); }
+.lt-slot::after { bottom: 0; background: linear-gradient(0deg, rgba(0,0,0,.14), transparent); }
+@keyframes lt-win { 0% { opacity: 0; transform: scale(.6) translateY(30px) } 60% { opacity: 1; transform: scale(1.06) } 100% { transform: none } }
+.lt-win { animation: lt-win .7s cubic-bezier(.2,.8,.2,1) both; }
+.lt-confetti span { position: absolute; top: -20px; border-radius: 2px; opacity: 0; animation-name: lt-fall; animation-timing-function: cubic-bezier(.3,.6,.4,1); animation-fill-mode: forwards; }
+@keyframes lt-fall { 0% { opacity: 1; transform: translateY(0) rotate(0) } 85% { opacity: 1 } 100% { opacity: 0; transform: translateY(110vh) rotate(720deg) } }
+/* guest celebration */
+.lt-banner { position: relative; overflow: hidden; background: linear-gradient(135deg, #f59e0b 0%, #f97316 45%, #e11d48 100%); color: #fff; isolation: isolate; }
+.lt-banner::before { content: ""; position: absolute; inset: -40% -10% auto auto; width: 220px; height: 220px; border-radius: 9999px; background: radial-gradient(circle, rgba(255,255,255,.35), transparent 70%); z-index: -1; }
+@keyframes lt-shine { from { transform: translateX(-120%) skewX(-20deg) } to { transform: translateX(320%) skewX(-20deg) } }
+.lt-banner::after { content: ""; position: absolute; top: 0; bottom: 0; width: 30%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: lt-shine 2.8s ease-in-out 0.3s 2; z-index: -1; }
+@keyframes lt-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .45 } }
+.lt-pulse { animation: lt-pulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .lt-roll, .lt-win, .lt-banner::after, .lt-pulse { animation: none !important; } .lt-confetti { display: none; } }
+
 @media (prefers-reduced-motion: reduce) { .g-in, .animate-pop, .animate-toast, .animate-fade-up { animation: none !important; } .g-lift, .g-lift:hover { transition: none; transform: none; } .g-tab-ind { transition: none !important; } }

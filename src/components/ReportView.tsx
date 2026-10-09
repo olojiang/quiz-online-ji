@@ -207,6 +207,37 @@ export function ReportView({ dataUrl, exportUrl, title }: { dataUrl: string; exp
           </div>
         )}
       </section>
+
+      {/* section 5 */}
+      <section className="card">
+        <Header icon="lottery" iconColor="text-orange-500" title={t("抽奖结果")} desc={t("各抽奖的奖项与获奖名单")} />
+        {!data.lotteries?.length ? <EmptyState icon="lottery" title={t("暂无抽奖")} desc={t("在「创建互动」中选择「抽奖」，即可从参与嘉宾中随机抽取获奖者。")} /> : (
+          <div className="divide-y divide-dashed divide-gray-100">
+            {data.lotteries.map((l: Any) => (
+              <div key={l.id} className="p-5">
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <span className="font-medium text-gray-900">{l.title}</span>
+                  <span className={`chip ${l.phase === "revealed" ? "bg-emerald-50 text-emerald-700" : l.phase === "rolling" ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-600"}`}>{l.phase === "revealed" ? t("已揭晓") : l.phase === "rolling" ? t("抽奖中") : t("待开始")}</span>
+                  <span className="text-xs text-gray-500">{t("已加入 {n} 人", { n: l.joined })} · {l.participatedOnly ? t("仅限参与过互动的嘉宾") : t("全部嘉宾")} · {l.allowRepeat ? t("允许重复中奖") : t("不可重复中奖")}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {l.prizes.map((p: Any, i: number) => <span key={i} className="chip bg-orange-50 text-orange-700 ring-1 ring-orange-100 px-2.5 py-1">{p.name} · {t("已抽出 {a}/{b}", { a: p.drawn, b: p.count })}</span>)}
+                </div>
+                {l.winners.length === 0 ? <p className="text-sm text-gray-400">{t("还没有抽出获奖者")}</p> : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-gray-500"><tr><th className="text-left font-medium py-1.5">{t("中奖时间")}</th><th className="text-left font-medium px-2">{t("奖项")}</th><th className="text-left font-medium px-2">{t("姓名")}</th><th className="text-right font-medium">{t("状态")}</th></tr></thead>
+                      <tbody className="divide-y divide-gray-100">{l.winners.map((w: Any, i: number) => (
+                        <tr key={i} className={w.voided ? "text-gray-400" : ""}><td className="py-2 tabular-nums">{fmtTime(w.drawn_at)}</td><td className="px-2">{w.prize_name}</td><td className={`px-2 font-medium ${w.voided ? "line-through" : "text-gray-900"}`}>{w.nickname}</td><td className="text-right">{w.voided ? <span className="chip bg-gray-100 text-gray-500">{t("已作废")}</span> : <span className="chip bg-emerald-50 text-emerald-700">{t("有效")}</span>}</td></tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

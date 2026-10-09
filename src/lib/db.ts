@@ -123,6 +123,21 @@ const STATEMENTS = [
   `ALTER TABLE qoj_participants ADD COLUMN IF NOT EXISTS link_id INT`,
   `CREATE INDEX IF NOT EXISTS qoj_q_inter ON qoj_questions (interaction_id)`,
   `CREATE INDEX IF NOT EXISTS qoj_r_inter ON qoj_responses (interaction_id)`,
+  // 抽奖 winners: one row per drawn slot; 作废 keeps the row (voided = true) so the record survives a redraw
+  `CREATE TABLE IF NOT EXISTS qoj_lottery_winners (
+    id SERIAL PRIMARY KEY,
+    interaction_id INT NOT NULL REFERENCES qoj_interactions(id) ON DELETE CASCADE,
+    prize_index INT NOT NULL,
+    prize_name TEXT NOT NULL DEFAULT '',
+    participant_id TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+    round INT NOT NULL DEFAULT 1,
+    voided BOOLEAN NOT NULL DEFAULT false,
+    voided_at TIMESTAMPTZ,
+    drawn_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS qoj_lw_inter ON qoj_lottery_winners (interaction_id)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS qoj_lw_once ON qoj_lottery_winners (interaction_id, prize_index, participant_id) WHERE NOT voided`,
 ];
 
 export function ensureSchema(): Promise<void> {

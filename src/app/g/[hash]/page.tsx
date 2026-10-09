@@ -99,6 +99,7 @@ export default function GuestPage() {
           {view?.type === "poll" && <PollView code={code} pid={pid} profile={profile} live={view} reload={reload} ended={ev.status === "ended"} />}
           {view?.type === "quiz" && <QuizView code={code} pid={pid} profile={profile} live={view} reload={reload} />}
           {view?.type === "rate" && <RateView code={code} pid={pid} profile={profile} live={view} reload={reload} ended={ev.status === "ended"} theme={themeKey} />}
+          {view?.type === "lottery" && <LotteryView live={view} pid={pid} profile={profile} />}
           {view?.type === "open" && <OpenView code={code} pid={pid} profile={profile} live={view} reload={reload} ended={ev.status === "ended"} />}
         </div>
         <footer className={`fixed bottom-0 inset-x-0 z-20 g-frost border-t border-black/[0.06] ${F("md:sticky md:rounded-b-[20px]")}`}>
@@ -115,7 +116,7 @@ export default function GuestPage() {
   );
 }
 
-const TYPE_ICON: Record<string, string> = { qa: "qa", poll: "poll", quiz: "quiz", rate: "rate", open: "open" };
+const TYPE_ICON: Record<string, string> = { qa: "qa", poll: "poll", quiz: "quiz", rate: "rate", open: "open", lottery: "lottery" };
 
 /** Initials avatar with a soft two-tone gradient (hue derived from the name). */
 function GAvatar({ name, size = 32 }: { name: string; size?: number }) {
@@ -500,6 +501,66 @@ function RateView({ code, pid, profile, live, reload, ended, theme }: { code: st
         )}
         {submitted && !closed && <button className="btn btn-ghost w-full mt-3 text-[color:var(--g-text)]" onClick={startEdit}>{t("修改评分")}</button>}
         {live.mine?.comment && (submitted || closed) && <p className="mt-3 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2 break-words">{t("我的评论")}{t("：")}{live.mine.comment}</p>}
+      </div>
+    </div>
+  );
+}
+
+function LotteryView({ live, profile }: { live: Any; pid: string; profile: Profile }) {
+  const t = useT();
+  const mine: Any[] = live.mine || [];
+  const phaseLabel: Record<string, string> = { idle: t("待开始"), rolling: t("抽奖中"), revealed: t("已揭晓") };
+  const phaseCls: Record<string, string> = { idle: "bg-gray-100 text-gray-600", rolling: "bg-amber-50 text-amber-700", revealed: "bg-emerald-50 text-emerald-700" };
+  const curPrize = live.prize != null ? live.prizes[live.prize] : null;
+  const byPrize = live.prizes.map((p: Any, i: number) => ({ ...p, i, winners: (live.winners as Any[]).filter((w) => w.prize_index === i) }));
+  return (
+    <div className="p-4 space-y-3">
+      {mine.length > 0 && (
+        <div className="g-in lt-banner rounded-[18px] px-5 py-5 shadow-[0_14px_30px_-14px_rgba(225,29,72,.55)]" role="status" data-testid="win-banner">
+          <div className="flex items-center gap-4">
+            <span className="w-12 h-12 rounded-2xl bg-white/20 ring-1 ring-white/40 flex items-center justify-center shrink-0"><Icon name="lottery" className="w-6 h-6" /></span>
+            <div className="min-w-0">
+              <div className="text-xs font-medium tracking-[0.18em] text-white/85">{t("中奖啦")}</div>
+              <div className="text-[19px] font-semibold leading-snug mt-0.5 break-words">{t("恭喜你获得 {prize}", { prize: mine.map((m) => m.prize_name).join("、") })}</div>
+              <div className="text-xs text-white/85 mt-1">{t("{name}，请留意主持人的领奖安排。", { name: profile.name })}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="g-in g-card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[17px] font-medium text-gray-900 leading-snug break-words">{live.title}</div>
+            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1.5"><Icon name="users" className="w-3.5 h-3.5" />{t("抽奖池 {n} 人", { n: live.poolSize })}{live.participatedOnly ? ` · ${t("仅限参与过互动的嘉宾")}` : ""}</div>
+          </div>
+          <span className={`chip shrink-0 ${phaseCls[live.phase]}`}>{live.phase === "rolling" && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 lt-pulse" />}{phaseLabel[live.phase]}</span>
+        </div>
+        {live.phase === "rolling" && curPrize && (
+          <div className="mt-4 rounded-xl bg-[color:var(--g-soft)] text-[color:var(--g-text)] px-4 py-3 text-sm font-medium flex items-center gap-2"><Icon name="lottery" className="w-4 h-4 lt-pulse" />{t("正在抽取「{name}」，请看大屏…", { name: curPrize.name })}</div>
+        )}
+        {live.phase === "idle" && !mine.length && <p className="mt-4 text-sm text-gray-500 leading-relaxed">{live.inPool ? t("你已在抽奖池中，祝你好运！请留意大屏。") : live.participatedOnly ? t("本次抽奖只抽参与过互动的嘉宾，去提问、点赞或参与投票就能进入抽奖池。") : t("请留意大屏，主持人即将开始抽奖。")}</p>}
+        <ul className="mt-4 space-y-2.5">
+          {byPrize.map((p: Any) => (
+            <li key={p.i} className={`rounded-xl border px-4 py-3.5 ${live.prize === p.i && live.phase === "rolling" ? "border-[color:var(--g-soft-border)] bg-[color:var(--g-soft)]/50" : "border-gray-100"}`}>
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: "linear-gradient(135deg, var(--g-primary), var(--g-primary-2))" }}><Icon name="lottery" className="w-[18px] h-[18px]" /></span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-semibold text-gray-900 truncate">{p.name} <span className="font-normal text-gray-500">× {p.count}</span></div>
+                  {p.desc && <div className="text-xs text-gray-500 mt-0.5 break-words">{p.desc}</div>}
+                </div>
+                <span className="text-xs text-gray-500 tabular-nums shrink-0">{t("已抽出 {a}/{b}", { a: p.drawn, b: p.count })}</span>
+              </div>
+              {p.winners.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {p.winners.map((w: Any) => {
+                    const me = mine.some((m) => m.id === w.id);
+                    return <span key={w.id} className={`inline-flex items-center gap-1.5 rounded-full pl-1 pr-3 py-1 text-[13px] ${me ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200 font-semibold" : "bg-gray-50 text-gray-800"} ${w.latest ? "g-in" : ""}`}><GAvatar name={w.nickname} size={22} />{w.nickname}{me && <span className="text-[11px]">· {t("我")}</span>}</span>;
+                  })}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

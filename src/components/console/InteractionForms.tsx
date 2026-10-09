@@ -15,7 +15,7 @@ const TILES = [
   { type: "rate", label: "评分", icon: "rate", color: "text-amber-500 bg-amber-50", desc: "嘉宾为一个或多个评分项打分，大屏实时展示平均分与分布" },
   { type: "open", label: "开放话题", icon: "open", color: "text-violet-500 bg-violet-50", desc: "嘉宾自由填写观点，大屏以列表展示" },
   { type: "danmu", label: "弹幕", icon: "danmu", color: "text-emerald-500 bg-emerald-50", soon: true },
-  { type: "lottery", label: "抽奖", icon: "lottery", color: "text-orange-500 bg-orange-50", soon: true },
+  { type: "lottery", label: "抽奖", icon: "lottery", color: "text-orange-500 bg-orange-50", desc: "从参与嘉宾中随机抽取获奖者，大屏滚动揭晓" },
 ];
 
 export function CreateInteractionModal({ eventId, qaId, onClose, onCreated, onGoQA }: { eventId: number; qaId: number | null; onClose: () => void; onCreated: (it: Any) => void; onGoQA: (id: number) => void }) {
@@ -69,6 +69,17 @@ export function CreateInteractionModal({ eventId, qaId, onClose, onCreated, onGo
                   </div>
                 ))}
               </div>
+            ) : h.type === "lottery" ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-1.5">
+                <div className="text-[8px] font-semibold tracking-[0.2em] text-amber-200">{t("一等奖")}</div>
+                <div className="flex gap-1.5">
+                  {["王", "李", "张"].map((n, i) => (
+                    <div key={i} className={`w-9 h-11 rounded-md flex items-center justify-center text-sm font-bold ${i === 1 ? "bg-gradient-to-b from-amber-200 to-amber-400 text-amber-900 shadow-[0_0_12px_rgba(251,191,36,.7)] scale-110" : "bg-white/15 text-white/70"}`}>{n}</div>
+                  ))}
+                </div>
+                <div className="h-1 w-16 rounded bg-white/40 mt-1" />
+                <div className="flex gap-0.5 mt-0.5">{[0, 1, 2, 3, 4].map((i) => <span key={i} className="w-1 h-1 rounded-full" style={{ background: ["#fcd34d", "#f472b6", "#60a5fa", "#34d399", "#fcd34d"][i] }} />)}</div>
+              </div>
             ) : (
               <div className="flex-1 space-y-1.5 pt-2">
                 {[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-3.5 rounded bg-white/10 flex items-center px-1.5"><div className="h-1 rounded bg-white/50" style={{ width: `${80 - i * 12}%` }} /></div>)}
@@ -82,7 +93,7 @@ export function CreateInteractionModal({ eventId, qaId, onClose, onCreated, onGo
   );
 }
 
-const TITLE_DEFAULT: Record<string, string> = { qa: "提问", poll: "选择题", quiz: "知识测验", open: "开放话题", rate: "评分" };
+const TITLE_DEFAULT: Record<string, string> = { qa: "提问", poll: "选择题", quiz: "知识测验", open: "开放话题", rate: "评分", lottery: "幸运抽奖" };
 
 export function InteractionForm({ type, eventId, initial, onClose, onSaved }: { type: string; eventId: number; initial?: Any; onClose: () => void; onSaved: (it: Any) => void }) {
   const t = useT();
@@ -99,11 +110,14 @@ export function InteractionForm({ type, eventId, initial, onClose, onSaved }: { 
   const [max, setMax] = useState<number>(cfg.max || 5);
   const [allowComment, setAllowComment] = useState(!!cfg.allowComment);
   const [anonymous, setAnonymous] = useState(!!cfg.anonymous);
+  const [prizes, setPrizes] = useState<{ name: string; count: number | string; desc: string }[]>(cfg.prizes || [{ name: "一等奖", count: 1, desc: "" }, { name: "二等奖", count: 3, desc: "" }]);
+  const [participatedOnly, setParticipatedOnly] = useState(!!cfg.participatedOnly);
+  const [allowRepeat, setAllowRepeat] = useState(!!cfg.allowRepeat);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const config = type === "rate" ? { items, scale, max, allowComment, anonymous } : type === "poll" ? { question: question || title, options, multi } : type === "open" ? { prompt: prompt || title } : type === "quiz" ? { questions: qs } : {};
+    const config = type === "lottery" ? { prizes: prizes.map((p) => ({ ...p, count: Number(p.count) })), participatedOnly, allowRepeat } : type === "rate" ? { items, scale, max, allowComment, anonymous } : type === "poll" ? { question: question || title, options, multi } : type === "open" ? { prompt: prompt || title } : type === "quiz" ? { questions: qs } : {};
     setBusy(true);
     try {
       const d = initial
@@ -114,7 +128,8 @@ export function InteractionForm({ type, eventId, initial, onClose, onSaved }: { 
     } catch (err) { toast((err as Error).message, "error"); } finally { setBusy(false); }
   }
   const updQ = (i: number, patch: Any) => setQs(qs.map((q, j) => (j === i ? { ...q, ...patch } : q)));
-  const label = { qa: t("提问"), poll: t("选择题"), quiz: t("测验"), open: t("开放话题"), rate: t("评分") }[type];
+  const label = { qa: t("提问"), poll: t("选择题"), quiz: t("测验"), open: t("开放话题"), rate: t("评分"), lottery: t("抽奖") }[type];
+  const updP = (i: number, patch: Any) => setPrizes(prizes.map((p, j) => (j === i ? { ...p, ...patch } : p)));
 
   return (
     <Modal onClose={onClose} title={`${initial ? t("编辑") : t("创建")}${label}`} width="max-w-2xl">
@@ -177,6 +192,33 @@ export function InteractionForm({ type, eventId, initial, onClose, onSaved }: { 
             </div>
             <label className="flex items-center gap-3 text-sm text-gray-700"><Toggle checked={allowComment} onChange={setAllowComment} />{t("允许嘉宾填写评论")}</label>
             <label className="flex items-start gap-3 text-sm text-gray-700"><Toggle checked={anonymous} onChange={setAnonymous} /><span>{t("匿名展示")}<span className="block text-xs text-gray-500 mt-0.5">{FEATURE_GROUPS ? t("开启后，大屏、控制台、报告和导出中都不显示评分人的姓名和组别（按组别平均分仍会统计）。") : t("开启后，大屏、控制台、报告和导出中都不显示评分人的姓名。")}</span></span></label>
+          </>
+        )}
+        {type === "lottery" && (
+          <>
+            <div>
+              <label className="label">{t("奖项")}</label>
+              <div className="space-y-2.5">
+                {prizes.map((p, i) => (
+                  <div key={i} className="rounded-xl border border-gray-200 p-3 space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <span className="w-7 h-7 shrink-0 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-xs font-semibold">{i + 1}</span>
+                      <input className="input" value={p.name} maxLength={40} onChange={(e) => updP(i, { name: e.target.value })} placeholder={t("奖项名称，例如：一等奖")} aria-label={t("奖项名称")} />
+                      <span className="shrink-0 text-sm text-gray-500">×</span>
+                      <input className="input w-20 text-center shrink-0" type="number" min={1} max={200} value={p.count} onChange={(e) => updP(i, { count: e.target.value })} aria-label={t("名额")} title={t("名额")} />
+                      <span className="shrink-0 text-sm text-gray-500">{t("名")}</span>
+                      <button type="button" className="btn btn-ghost px-2 shrink-0" disabled={prizes.length <= 1} onClick={() => setPrizes(prizes.filter((_, j) => j !== i))} title={t("删除")}><Icon name="x" /></button>
+                    </div>
+                    <input className="input h-9 text-[13px]" value={p.desc} maxLength={120} onChange={(e) => updP(i, { desc: e.target.value })} placeholder={t("奖品说明（选填），例如：iPad 一台")} aria-label={t("奖品说明")} />
+                  </div>
+                ))}
+              </div>
+              {prizes.length < 20 && <button type="button" className="btn btn-ghost btn-sm mt-2 text-brand-600" onClick={() => setPrizes([...prizes, { name: "", count: 1, desc: "" }])}><Icon name="plus" />{t("添加奖项")}</button>}
+              {initial && <p className="text-xs text-amber-600 mt-1.5">{t("已有抽奖记录时，不能增删奖项，名额不能少于已抽出人数。")}</p>}
+            </div>
+            <label className="flex items-start gap-3 text-sm text-gray-700"><Toggle checked={participatedOnly} onChange={setParticipatedOnly} /><span>{t("仅限参与过互动的嘉宾")}<span className="block text-xs text-gray-500 mt-0.5">{t("只抽提过问、点过赞、评论、投票、答题或评分的嘉宾。关闭时，所有填写姓名进入活动的嘉宾都在抽奖池中。")}</span></span></label>
+            <label className="flex items-start gap-3 text-sm text-gray-700"><Toggle checked={allowRepeat} onChange={setAllowRepeat} /><span>{t("允许重复中奖")}<span className="block text-xs text-gray-500 mt-0.5">{t("默认关闭：同一位嘉宾在本抽奖中最多中一个奖。")}</span></span></label>
+            <p className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3">{t("创建后可在抽奖页面把某位嘉宾移出抽奖池。获奖者在点击「停止并揭晓」时由服务器随机抽取，大屏滚动动画仅为展示效果。")}</p>
           </>
         )}
         {type === "quiz" && (

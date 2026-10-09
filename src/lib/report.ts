@@ -2,6 +2,8 @@ import { FEATURE_GROUPS } from "@/lib/features";
 import { sql } from "./db";
 import { TYPE_LABEL } from "./types";
 import { rateStats } from "./live";
+import { eligible, lotteryPeople, lotteryWinners, prizeSummary } from "./lottery";
+import type { LotteryConfig } from "./types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
@@ -78,6 +80,7 @@ export async function buildReport(ev: Row, q: { from?: string | null; to?: strin
     groupMap.set(g, row);
   }
   const ratings = await ratingResults(id);
+  const lotteries = await lotteryResults(id);
   return {
     event: { name: ev.name, status: ev.status, event_date: ev.event_date },
     kpis: {
@@ -94,7 +97,26 @@ export async function buildReport(ev: Row, q: { from?: string | null; to?: strin
     links: links.map((l) => ({ id: l.id as number, type: l.type as string, visits: l.visits as number, guests: l.guests as number, revoked_at: l.revoked_at, label: l.label || (l.type === "embed" ? "嵌入链接" : "默认嘉宾链接") })),
     qa: { stats: qaStats[0], hot: FEATURE_GROUPS ? hot : hot.map((h) => ({ ...h, group_name: "" })) },
     ratings,
+    lotteries,
   };
+}
+
+/** 抽奖结果 for the report: prizes, valid winners (and voided ones, marked) per 抽奖 interaction. */
+export async function lotteryResults(eventId: number) {
+  const its = await sql`SELECT * FROM qoj_interactions WHERE event_id = ${eventId} AND type = 'lottery' ORDER BY id`;
+  const out = [];
+  for (const it of its) {
+    const cfg = it.config as LotteryConfig;
+    const [winners, people] = await Promise.all([lotteryWinners(it.id), lotteryPeople(it)]);
+    out.push({
+      id: it.id as number, title: it.title as string, phase: (it.state?.phase as string) || "idle",
+      participatedOnly: !!cfg.participatedOnly, allowRepeat: !!cfg.allowRepeat, joined: people.length,
+      poolSize: eligible(cfg, people, winners, null).length,
+      prizes: prizeSummary(cfg, winners),
+      winners: winners.map((w) => ({ prize_index: w.prize_index as number, prize_name: w.prize_name as string, nickname: w.nickname as string, drawn_at: w.drawn_at, voided: !!w.voided, voided_at: w.voided_at })),
+    });
+  }
+  return out;
 }
 
 /** 评分结果 for the report: one entry per 评分 interaction. Names are dropped when the rating is anonymous. */
@@ -158,6 +180,29 @@ function ratingSheet(ratings: any[]) {
   return rows;
 }
 
+const PHASE_ZH: Record<string, string> = { idle: "待开始", rolling: "抽奖中", revealed: "已揭晓" };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lotterySheet(lotteries: any[]) {
+  const rows: unknown[][] = [];
+  for (const l of lotteries) {
+    rows.push([`抽奖：${l.title}`, PHASE_ZH[l.phase] || l.phase, `参与嘉宾 ${l.joined}`, l.participatedOnly ? "仅限参与过互动的嘉宾" : "全部嘉宾", l.allowRepeat ? "允许重复中奖" : "不可重复中奖"]);
+    rows.push(["奖项", "名额", "已抽出", "说明"]);
+    for (const p of l.prizes) rows.push([p.name, p.count, p.drawn, p.desc]);
+    rows.push(["中奖时间", "奖项", "姓名", "状态"]);
+    for (const w of l.winners) rows.push([fmt(w.drawn_at), w.prize_name, w.nickname, w.voided ? `已作废（${fmt(w.voided_at)}）` : "有效"]);
+    rows.push([]);
+  }
+  return rows;
+}
+
+/** CSV for one 抽奖: prizes + every winner (voided ones marked). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function lotteryCSV(ev: Row, it: Row) {
+  const rows = lotterySheet(await lotteryResults(ev.id).then((ls) => ls.filter((l) => l.id === it.id)));
+  const base = `${ev.name}-${it.title}`.replace(/[\\/:*?"<>|]/g, "_");
+  return { filename: `${base}-抽奖结果.csv`, body: toCSV(rows), type: "text/csv; charset=utf-8" };
+}
+
 /** Single-interaction CSV for the console's 导出 CSV button. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function rateCSV(ev: Row, it: Row) {
@@ -205,6 +250,7 @@ export async function exportFile(ev: Row, section: string): Promise<{ filename: 
       ["问题", await questionRows(ev.id)],
       ["互动作答", await responseRows(ev.id)],
       ...(rep.ratings.length ? [["评分结果", ratingSheet(rep.ratings)] as [string, unknown[][]]] : []),
+      ...(rep.lotteries.length ? [["抽奖结果", lotterySheet(rep.lotteries)] as [string, unknown[][]]] : []),
       ["来源链接", [["链接", "访问次数", "嘉宾数", "状态"], ...rep.links.map((l) => [l.label, l.visits, l.guests, l.revoked_at ? "已失效" : "有效"])]],
     ]),
   };
