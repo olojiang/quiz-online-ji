@@ -16,7 +16,7 @@ const STATUS_DESC: Record<EventStatus, string> = {
 /** The one obvious next step for each state. */
 const PRIMARY: Record<EventStatus, { to: EventStatus; label: string; icon: string }> = {
   upcoming: { to: "live", label: "开始活动", icon: "play" },
-  live: { to: "ended", label: "结束活动", icon: "flag" },
+  live: { to: "ended", label: "结束活动", icon: "stop" },
   ended: { to: "live", label: "重新开放", icon: "refresh" },
 };
 const TOAST: Record<EventStatus, string> = { upcoming: "活动已改为「未开始」", live: "活动已开始", ended: "活动已结束" };
@@ -85,7 +85,7 @@ export function StatusControl({ event, perms, onChanged }: { event: Any; perms: 
         {(close) => <StatusMenuItems event={event} perms={perms} change={change} close={close} />}
       </Dropdown>
       {canSetStatus(perms, p.to) && (
-        <button className={`btn h-8 px-3 text-sm ${status === "live" ? "btn-secondary text-red-600 hover:bg-red-50" : "btn-primary"}`} disabled={busy} onClick={() => change(p.to)} data-testid="status-primary">
+        <button className={`btn h-8 px-3 text-sm ${status === "upcoming" ? "btn-primary" : "btn-secondary"}`} disabled={busy} onClick={() => change(p.to)} data-testid="status-primary">
           {busy ? <Spinner className="w-4 h-4" /> : <Icon name={p.icon} className="w-4 h-4" />}<span className="hidden sm:inline">{t(p.label)}</span>
         </button>
       )}
@@ -104,8 +104,8 @@ export function StatusQuickActions({ event, perms, onChanged }: { event: Any; pe
   return (
     <div className="flex items-center gap-1" onClick={stop}>
       {canSetStatus(perms, p.to) && (
-        <button className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${status === "live" ? "text-red-600 hover:bg-red-50" : "text-brand-700 hover:bg-brand-50"}`} disabled={busy} onClick={() => change(p.to)} data-testid="card-status-primary">
-          {busy ? <Spinner className="w-3.5 h-3.5" /> : <Icon name={p.icon} className="w-3.5 h-3.5" />}{t(p.label)}
+        <button className="group/sa inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 h-7 text-xs font-medium text-gray-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 disabled:opacity-50" disabled={busy} onClick={() => change(p.to)} data-testid="card-status-primary">
+          {busy ? <Spinner className="w-3.5 h-3.5" /> : <Icon name={p.icon} className="w-3.5 h-3.5 text-gray-400 group-hover/sa:text-brand-600" />}{t(p.label)}
         </button>
       )}
       <Dropdown width="w-64" trigger={() => <button className="p-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-700" title={t("切换活动状态")} aria-label={t("切换活动状态")} data-testid="card-status-menu"><Icon name="more" className="w-4 h-4" /></button>}>

@@ -1,9 +1,9 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LinkError } from "@/components/LinkError";
 import Link from "next/link";
-import { api, Avatar, Dropdown, EmptyState, Icon, MenuItem, Modal, PageLoader, Spinner, copyText, usePoll, useUI } from "@/components/ui";
+import { api, Avatar, Dropdown, Icon, MenuItem, Modal, PageLoader, Spinner, copyText, usePoll, useUI } from "@/components/ui";
 import { fmtTime } from "@/lib/util";
 import { guestVars } from "@/lib/palette";
 import { AppLogo } from "@/components/Logo";
@@ -24,8 +24,16 @@ function getPid() {
   return p;
 }
 
+/**
+ * Desktop/tablet (≥768px) framing: the guest page becomes a centred "app card" on a soft themed backdrop.
+ * Phones keep the full-screen layout (every framing class is md:-prefixed). /embed (iframe) stays unframed.
+ */
+function useFramed() { return !(usePathname() || "").startsWith("/embed"); }
+
 export default function GuestPage() {
   const t = useT();
+  const framed = useFramed();
+  const F = (cls: string) => (framed ? cls : "");
   const { hash: code } = useParams<{ hash: string }>();
   const [pid, setPid] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -54,7 +62,7 @@ export default function GuestPage() {
   if (!ready || (!data && !error)) return <PageLoader />;
   if (error && !data) return <LinkError revoked={error.status === 410} message={error.message} />;
   const ev = data.event;
-  if (!profile || editProfile) return <JoinGate event={ev} initial={profile} onDone={saveProfile} onCancel={profile ? () => setEditProfile(false) : undefined} />;
+  if (!profile || editProfile) return <JoinGate event={ev} framed={framed} initial={profile} onDone={saveProfile} onCancel={profile ? () => setEditProfile(false) : undefined} />;
 
   const cur = data.live;
   const qa = cur?.type === "qa" ? cur : data.qa;
@@ -63,65 +71,111 @@ export default function GuestPage() {
   const updateQA = (fn: (q: Any) => Any) => setData((d: Any) => d && (d.live?.type === "qa" ? { ...d, live: fn(d.live) } : { ...d, qa: fn(d.qa) }));
 
   return (
-    <div className="g-scope min-h-screen bg-[color:var(--g-page)]">
-      <div className="max-w-2xl mx-auto">
-        <header className="px-5 pt-6 pb-5 bg-[color:var(--g-primary)] text-[color:var(--g-on)]">
-          <div className="flex items-center gap-2"><AppLogo size={22} white /><div className="text-xs text-[color:var(--g-header-muted)] truncate flex-1">{ev.name}</div><LangSwitch dark /></div>
-          <div className="mt-1 text-[15px] font-medium">{view ? t(view.title) : t("等待互动开始")}</div>
+    <div className={`g-scope min-h-screen bg-[color:var(--g-page)] ${F("g-backdrop md:px-6 md:pt-10 md:pb-6")}`}>
+      <div className={`max-w-2xl mx-auto ${F("md:max-w-[720px] xl:max-w-[760px] md:flex md:flex-col md:min-h-[calc(100vh-7.5rem)] md:rounded-[20px] g-frame md:bg-[color:var(--g-page)]")}`} data-testid="guest-card">
+        <header className={`g-hero px-5 pt-5 pb-6 ${F("md:px-8 md:pt-7 md:pb-8 md:rounded-t-[20px]")}`}>
+          <span className="g-hero-grain" aria-hidden />
+          <div className="flex items-center gap-2"><AppLogo size={22} white /><div className="flex-1" /><LangSwitch dark /></div>
+          <h1 className={`mt-4 text-[22px] leading-tight font-semibold tracking-tight break-words ${F("md:mt-5 md:text-[28px]")}`}>{ev.name}</h1>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="g-chip"><Icon name={view ? (TYPE_ICON[view.type] || "qa") : "mic"} className="w-3.5 h-3.5" />{view ? t(view.title) : t("等待互动开始")}</span>
+            {ev.status === "live" && <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--g-header-muted)]"><span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />{t("进行中")}</span>}
+          </div>
         </header>
-        {data.notice && <div className={`px-4 py-2.5 text-xs flex items-center gap-2 ${ev.status === "ended" ? "bg-gray-100 text-gray-600" : "bg-amber-50 text-amber-800"}`}><Icon name="info" className="w-3.5 h-3.5 shrink-0" />{t(data.notice)}</div>}
+        {data.notice && <div className={`px-5 py-2.5 text-xs flex items-center gap-2 ${ev.status === "ended" ? "bg-gray-100 text-gray-600" : "bg-amber-50 text-amber-800"}`}><Icon name="info" className="w-3.5 h-3.5 shrink-0" />{t(data.notice)}</div>}
         {showTabs && (
-          <div className="flex bg-white border-b border-gray-100 text-sm">
-            <button className={`flex-1 py-3 ${tab === "current" ? "text-[color:var(--g-text)] font-medium border-b-2 border-[color:var(--g-text)]" : "text-gray-600"}`} onClick={() => setTab("current")}>{t(cur.title)}</button>
-            <button className={`flex-1 py-3 ${tab === "qa" ? "text-[color:var(--g-text)] font-medium border-b-2 border-[color:var(--g-text)]" : "text-gray-600"}`} onClick={() => setTab("qa")}>{t(data.qa.title)}</button>
+          <div className="flex bg-white/90 border-b border-gray-100 text-sm">
+            {(["current", "qa"] as const).map((k) => (
+              <button key={k} className={`relative flex-1 py-3.5 transition-colors ${tab === k ? "text-[color:var(--g-text)] font-semibold" : "text-gray-500 hover:text-gray-800"}`} onClick={() => setTab(k)}>
+                {t(k === "current" ? cur.title : data.qa.title)}
+                <span className={`g-tab-ind absolute left-1/2 -translate-x-1/2 bottom-0 h-[3px] w-10 rounded-full bg-[color:var(--g-text)] transition-transform duration-300 ${tab === k ? "scale-x-100" : "scale-x-0"}`} />
+              </button>
+            ))}
           </div>
         )}
-        <div className="pb-20">
-          {!view && <EmptyState icon="mic" title={t("互动即将开始")} desc={t("主持人开启互动后，这里会自动刷新。")} />}
+        <div className={`pb-20 ${F("md:flex-1 md:pb-6 md:px-3 md:pt-1 g-desk")}`}>
+          {!view && <GuestEmpty icon="mic" title={t("互动即将开始")} desc={t("主持人开启互动后，这里会自动刷新。")} />}
           {view?.type === "qa" && qa && <QAView code={code} pid={pid} profile={profile} event={ev} qa={qa} canAsk={data.canAsk} sort={sort} setSort={setSort} reload={reload} update={updateQA} />}
           {view?.type === "poll" && <PollView code={code} pid={pid} profile={profile} live={view} reload={reload} ended={ev.status === "ended"} />}
           {view?.type === "quiz" && <QuizView code={code} pid={pid} profile={profile} live={view} reload={reload} />}
           {view?.type === "rate" && <RateView code={code} pid={pid} profile={profile} live={view} reload={reload} ended={ev.status === "ended"} theme={themeKey} />}
           {view?.type === "open" && <OpenView code={code} pid={pid} profile={profile} live={view} reload={reload} ended={ev.status === "ended"} />}
         </div>
-        <footer className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-gray-100">
-          <div className="max-w-2xl mx-auto px-4 h-12 flex items-center gap-2 text-xs text-gray-500">
-            <Avatar name={profile.name} size={22} />
-            <span className="truncate">{who(profile.name, profile.group)}</span>
-            <button className="ml-auto text-[color:var(--g-text)]" onClick={() => setEditProfile(true)}>{t("修改信息")}</button>
+        <footer className={`fixed bottom-0 inset-x-0 z-20 g-frost border-t border-black/[0.06] ${F("md:sticky md:rounded-b-[20px]")}`}>
+          <div className={`max-w-2xl mx-auto px-4 h-12 flex items-center gap-2 text-xs text-gray-500 ${F("md:max-w-none md:px-6 md:h-14 md:text-[13px] md:gap-3")}`}>
+            <GAvatar name={profile.name} size={24} />
+            <span className="truncate text-gray-700 font-medium">{who(profile.name, profile.group)}</span>
+            <button className="ml-auto rounded-full px-3 h-7 text-[color:var(--g-text)] hover:bg-[color:var(--g-soft)] transition-colors" onClick={() => setEditProfile(true)}>{t("修改信息")}</button>
             <Link href="/help?role=guest" target="_blank" className="text-gray-500 hover:text-[color:var(--g-text)]">{t("帮助")}</Link>
           </div>
         </footer>
       </div>
+      {framed && <GuestBrand name={ev.name} />}
     </div>
   );
 }
 
-function JoinGate({ event, initial, onDone, onCancel }: { event: Any; initial: Profile | null; onDone: (p: Profile) => void; onCancel?: () => void }) {
+const TYPE_ICON: Record<string, string> = { qa: "qa", poll: "poll", quiz: "quiz", rate: "rate", open: "open" };
+
+/** Initials avatar with a soft two-tone gradient (hue derived from the name). */
+function GAvatar({ name, size = 32 }: { name: string; size?: number }) {
+  let h = 0;
+  for (const c of name || "?") h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const hue = h % 360;
+  return <Avatar name={name} size={size} bg={`linear-gradient(135deg, hsl(${hue} 62% 58%), hsl(${(hue + 35) % 360} 58% 42%))`} />;
+}
+
+/** Themed empty state: soft gradient medallion + friendly copy. */
+function GuestEmpty({ icon, title, desc }: { icon: string; title: string; desc?: string }) {
+  return (
+    <div className="g-in flex flex-col items-center justify-center text-center py-16 px-8">
+      <div className="relative mb-5">
+        <div className="absolute inset-0 -m-3 rounded-full bg-[color:var(--g-soft)] blur-md" />
+        <div className="relative w-16 h-16 rounded-[22px] flex items-center justify-center text-white shadow-lg rotate-[-6deg]" style={{ background: "linear-gradient(135deg, var(--g-primary), var(--g-primary-2))" }}>
+          <Icon name={icon} className="w-8 h-8 rotate-[6deg]" />
+        </div>
+      </div>
+      <div className="text-[15px] font-semibold text-gray-900 tracking-tight">{title}</div>
+      {desc && <div className="mt-2 text-sm text-gray-500 max-w-xs leading-relaxed">{desc}</div>}
+    </div>
+  );
+}
+
+/** Muted branding under the desktop card (hidden on phones). */
+function GuestBrand({ name }: { name?: string }) {
+  return <p className="hidden md:block text-center text-xs text-[color:var(--g-backdrop-muted)] mt-5 truncate px-4">{name ? `${name} · ` : ""}Quiz Online Ji</p>;
+}
+
+function JoinGate({ event, framed, initial, onDone, onCancel }: { event: Any; framed: boolean; initial: Profile | null; onDone: (p: Profile) => void; onCancel?: () => void }) {
+  const F = (cls: string) => (framed ? cls : "");
   const t = useT();
   const [name, setName] = useState(initial?.name || "");
   const [group, setGroup] = useState(initial?.group || "");
   const groups: string[] = event.groups || [];
   return (
-    <div className="g-scope min-h-screen bg-[color:var(--g-page)]">
-      <div className="max-w-md mx-auto">
-        <div className="px-6 pt-10 pb-16 bg-[color:var(--g-primary)] text-[color:var(--g-on)]">
-          <div className="flex items-center justify-between mb-6"><AppLogo size={30} white /><LangSwitch dark /></div><div className="text-sm text-[color:var(--g-header-muted)]">{t("欢迎参加")}</div>
-          <h1 className="mt-1 text-xl font-semibold leading-snug">{event.name}</h1>
+    <div className={`g-scope min-h-screen bg-[color:var(--g-page)] ${F("g-backdrop md:px-6 md:pt-[12vh] md:pb-8")}`}>
+      <div className={`max-w-md mx-auto ${F("md:max-w-[480px] md:rounded-[20px] g-frame md:bg-[color:var(--g-page)] md:pb-8")}`} data-testid="guest-card">
+        <div className={`g-hero px-6 pt-8 pb-20 ${F("md:px-9 md:pt-9 md:rounded-t-[20px]")}`}>
+          <span className="g-hero-grain" aria-hidden />
+          <div className="flex items-center justify-between mb-8"><AppLogo size={30} white /><LangSwitch dark /></div>
+          <div className="text-xs font-medium uppercase tracking-[0.18em] text-[color:var(--g-header-muted)]">{t("欢迎参加")}</div>
+          <h1 className="mt-2 text-[26px] font-semibold leading-tight tracking-tight break-words">{event.name}</h1>
+          {event.event_date && <div className="mt-3 inline-flex items-center gap-1.5 g-chip"><Icon name="calendar" className="w-3.5 h-3.5" />{String(event.event_date).slice(0, 10)}</div>}
         </div>
-        <form className="mx-4 -mt-8 bg-white rounded-2xl shadow-sm p-6 space-y-4" onSubmit={(e) => { e.preventDefault(); if (name.trim() && (!FEATURE_GROUPS || group.trim())) onDone({ name: name.trim(), group: FEATURE_GROUPS ? group.trim() : initial?.group || "" }); }}>
-          <div className="text-[15px] font-medium text-gray-900">{FEATURE_GROUPS ? t("填写信息后参与互动") : t("填写姓名即可参与互动")}</div>
-          <div><label className="label">{t("姓名")} <span className="text-red-500">*</span></label><input className="input h-11" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={t("请输入您的姓名")} required /></div>
+        <form className={`g-in g-card relative mx-4 -mt-12 p-6 space-y-5 ${F("md:mx-7 md:p-8")}`} onSubmit={(e) => { e.preventDefault(); if (name.trim() && (!FEATURE_GROUPS || group.trim())) onDone({ name: name.trim(), group: FEATURE_GROUPS ? group.trim() : initial?.group || "" }); }}>
+          <div className="text-base font-semibold text-gray-900 tracking-tight">{FEATURE_GROUPS ? t("填写信息后参与互动") : t("填写姓名即可参与互动")}</div>
+          <div><label className="label">{t("姓名")} <span className="text-red-500">*</span></label><input className="input h-12 rounded-xl text-[15px] px-4" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={t("请输入您的姓名")} required autoFocus /></div>
           {FEATURE_GROUPS && <div><label className="label">{t("组别")} <span className="text-red-500">*</span></label>
             {groups.length ? (
               <select className="input h-11" value={group} onChange={(e) => setGroup(e.target.value)} required><option value="">{t("请选择组别")}</option>{groups.map((g) => <option key={g}>{g}</option>)}</select>
             ) : <input className="input h-11" value={group} onChange={(e) => setGroup(e.target.value)} maxLength={40} placeholder={t("请输入您的组别/部门")} required />}
           </div>}
-          <button className="btn g-btn w-full h-11 text-[15px]" >{t("进入活动")}</button>
+          <button className="btn g-btn w-full h-12 rounded-xl text-[15px] font-semibold tracking-wide shadow-[0_8px_20px_-8px_var(--g-primary)]" >{t("进入活动")}<Icon name="right" className="w-4 h-4" /></button>
           {onCancel && <button type="button" className="btn btn-ghost w-full" onClick={onCancel}>{t("取消")}</button>}
         </form>
-        <p className="text-center text-xs text-gray-500 mt-6"><Link href="/help?role=guest" className="underline">{t("如何参与？查看帮助")}</Link></p>
+        <p className={`text-center text-xs text-gray-500 mt-6 ${F("md:text-[13px]")}`}><Link href="/help?role=guest" className="underline">{t("如何参与？查看帮助")}</Link></p>
       </div>
+      {framed && <GuestBrand />}
     </div>
   );
 }
@@ -139,34 +193,39 @@ function QAView({ code, pid, profile, event, qa, canAsk, sort, setSort, reload, 
   const questions = qa.questions as Any[];
   return (
     <>
-      <button disabled={!canAsk} onClick={() => setComposing(true)} className="mx-3 mt-3 w-[calc(100%-1.5rem)] bg-white rounded-md border border-gray-100 px-4 py-4 flex items-center gap-3 text-sm text-gray-700 disabled:text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-        <Icon name="edit" className="w-5 h-5" />{canAsk ? t("点击输入您的问题") : t("提问已关闭")}
+      <button disabled={!canAsk} onClick={() => setComposing(true)} className="g-in group mx-3 mt-4 w-[calc(100%-1.5rem)] bg-white rounded-full border border-black/[0.06] pl-2 pr-2 py-2 flex items-center gap-3 text-[15px] text-gray-500 disabled:text-gray-400 shadow-[0_2px_4px_rgba(16,24,40,0.04),0_10px_24px_-14px_rgba(16,24,40,0.25)] transition hover:shadow-[0_2px_4px_rgba(16,24,40,0.05),0_14px_30px_-14px_rgba(16,24,40,0.3)] disabled:shadow-none">
+        <span className="w-10 h-10 rounded-full flex items-center justify-center bg-[color:var(--g-soft)] text-[color:var(--g-text)] shrink-0"><Icon name="edit" className="w-[18px] h-[18px]" /></span>
+        <span className="flex-1 text-left truncate">{canAsk ? t("点击输入您的问题") : t("提问已关闭")}</span>
+        {canAsk && <span className="g-btn rounded-full w-9 h-9 inline-flex items-center justify-center shrink-0 transition-transform group-hover:translate-x-0.5" aria-hidden><Icon name="right" className="w-4 h-4" strokeWidth={2.2} /></span>}
       </button>
-      <div className="flex items-center px-3 mt-4 border-b border-gray-200/70">
+      <div className="flex items-center px-3 mt-5 border-b border-black/[0.06]">
         {(["hot", "time"] as const).map((s) => (
-          <button key={s} onClick={() => setSort(s)} className={`w-28 py-2.5 text-sm ${sort === s ? "text-[color:var(--g-text)] border-b-2 border-[color:var(--g-text)] font-semibold" : "text-gray-600"}`}>{s === "hot" ? t("热门问题") : t("最新问题")}</button>
+          <button key={s} onClick={() => setSort(s)} className={`relative px-4 py-3 text-sm transition-colors ${sort === s ? "text-gray-900 font-semibold" : "text-gray-500 hover:text-gray-800"}`}>
+            {s === "hot" ? t("热门问题") : t("最新问题")}
+            <span className={`g-tab-ind absolute left-4 right-4 -bottom-px h-[3px] rounded-full bg-[color:var(--g-text)] transition-transform duration-300 origin-center ${sort === s ? "scale-x-100" : "scale-x-0"}`} />
+          </button>
         ))}
-        <span className="ml-auto text-sm text-gray-500 pr-1">{t("{n}个问题", { n: qa.approvedCount })}</span>
+        <span className="ml-auto text-xs text-gray-500 pr-1 tabular-nums">{t("{n}个问题", { n: qa.approvedCount })}</span>
       </div>
       {questions.length === 0 ? (
-        <EmptyState icon="qa" title={t("还没有问题")} desc={canAsk ? t("来提出第一个问题吧！审核通过后所有人都能看到并点赞。") : undefined} />
+        <GuestEmpty icon="qa" title={t("还没有问题")} desc={canAsk ? t("来提出第一个问题吧！审核通过后所有人都能看到并点赞。") : undefined} />
       ) : (
-        <ul className="px-3 pt-3 space-y-2.5">
+        <ul className="px-3 pt-4 space-y-3">
           {questions.map((q) => (
-            <li key={q.id} className={`bg-white rounded-md shadow-[0_1px_3px_rgba(0,0,0,0.05)] px-4 py-3.5 ${q.status === "pending" ? "opacity-80" : ""}`}>
+            <li key={q.id} className={`g-in g-card g-lift px-4 py-4 ${q.status === "pending" ? "opacity-80" : ""}`}>
               <div className="flex items-start gap-3">
-                <Avatar name={q.nickname} size={30} />
+                <GAvatar name={q.nickname} size={34} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-gray-500 truncate">{q.nickname}{FEATURE_GROUPS && q.group_name && <span className="text-gray-500"> · {q.group_name}</span>}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{fmtTime(q.created_at)}</div>
+                  <div className="text-[13px] font-medium text-gray-800 truncate">{q.nickname}{FEATURE_GROUPS && q.group_name && <span className="text-gray-500"> · {q.group_name}</span>}</div>
+                  <div className="text-xs text-gray-400 mt-0.5 tabular-nums">{fmtTime(q.created_at)}</div>
                 </div>
                 {q.status === "approved" ? (
-                  <button onClick={() => like(q)} className={`flex items-center gap-1.5 text-sm ${q.liked ? "text-[color:var(--g-text)]" : "text-gray-500"}`} aria-label={t("点赞")}>
-                    <Icon name="like" className="w-5 h-5" strokeWidth={q.liked ? 2.2 : 1.6} /><span className="tabular-nums">{q.likes}</span>
+                  <button onClick={() => like(q)} className={`flex items-center gap-1.5 h-8 pl-2.5 pr-3 rounded-full border text-sm transition-colors active:scale-95 ${q.liked ? "text-[color:var(--g-text)] bg-[color:var(--g-soft)] border-[color:var(--g-soft-border)]" : "text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"}`} aria-label={t("点赞")} aria-pressed={!!q.liked}>
+                    <Icon name="like" className="w-4 h-4" strokeWidth={q.liked ? 2.2 : 1.7} /><span className="tabular-nums font-medium">{q.likes}</span>
                   </button>
                 ) : <span className="chip bg-amber-50 text-amber-700">{t("审核中")}</span>}
               </div>
-              <p className="mt-2.5 text-[15px] text-gray-900 leading-relaxed whitespace-pre-wrap break-words">{q.text}</p>
+              <p className="mt-3 text-[15px] text-gray-900 leading-[1.7] tracking-[0.01em] whitespace-pre-wrap break-words">{q.text}</p>
               <div className="mt-1 flex items-center gap-2">
                 {q.pinned && <span className="chip bg-blue-50 text-blue-700">{t("置顶")}</span>}
                 {q.answered && <span className="chip bg-emerald-50 text-emerald-700">{t("已回答")}</span>}
@@ -217,7 +276,7 @@ function AskSheet({ code, pid, profile, event, onClose, onDone }: { code: string
     <Modal onClose={onClose} title={t("提问")} width="max-w-lg">
       <form onSubmit={submit} className="px-6 pb-6 space-y-3.5">
         <div className={FEATURE_GROUPS ? "grid grid-cols-2 gap-3" : ""}>
-          <div><label className="label">{t("姓名")} <span className="text-red-500">*</span></label><input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required /></div>
+          <div><label className="label">{t("姓名")} <span className="text-red-500">*</span></label><input className="input h-11 rounded-xl px-4" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} required /></div>
           {FEATURE_GROUPS && <div><label className="label">{t("组别")} <span className="text-red-500">*</span></label>
             {groups.length ? <select className="input" value={group} onChange={(e) => setGroup(e.target.value)} required><option value="">{t("请选择")}</option>{groups.map((g) => <option key={g}>{g}</option>)}</select>
               : <input className="input" value={group} onChange={(e) => setGroup(e.target.value)} maxLength={40} required />}
@@ -225,11 +284,11 @@ function AskSheet({ code, pid, profile, event, onClose, onDone }: { code: string
         </div>
         <div>
           <label className="label">{t("问题")} <span className="text-red-500">*</span></label>
-          <textarea className="input" rows={5} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={t("请输入您的问题…")} required autoFocus />
+          <textarea className="input rounded-xl text-[15px] px-4 py-3" rows={5} value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={t("请输入您的问题…")} required autoFocus />
           <div className="text-right text-xs text-gray-500 mt-1">{text.length}/500</div>
         </div>
-        <p className="text-xs text-gray-500">{t("问题经主办方审核后对所有参会者可见。")}</p>
-        <button className="btn g-btn w-full h-11 text-[15px]"  disabled={busy || !text.trim()}>{busy && <Spinner className="w-4 h-4" />}{t("提交问题")}</button>
+        <p className="text-xs text-gray-500 flex items-center gap-1.5"><Icon name="shield" className="w-3.5 h-3.5 shrink-0" />{t("问题经主办方审核后对所有参会者可见。")}</p>
+        <button className="btn g-btn w-full h-12 rounded-xl text-[15px] font-semibold tracking-wide"  disabled={busy || !text.trim()}>{busy && <Spinner className="w-4 h-4" />}{t("提交问题")}</button>
       </form>
     </Modal>
   );
@@ -276,7 +335,7 @@ function PollView({ code, pid, profile, live, reload, ended }: { code: string; p
   const toggle = (i: number) => setSel(live.multi ? (sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i]) : [i]);
   return (
     <div className="p-4">
-      <div className="bg-white rounded-xl p-5 shadow-sm">
+      <div className="g-in g-card p-5">
         <div className="text-[17px] font-medium text-gray-900 leading-snug">{live.question}</div>
         <div className="text-xs text-gray-500 mt-1">{live.multi ? t("多选") : t("单选")} · {live.voters}{t("人已投票")}</div>
         <div className="mt-5 space-y-2.5">
@@ -284,12 +343,12 @@ function PollView({ code, pid, profile, live, reload, ended }: { code: string; p
             const pct = live.voters ? Math.round((live.counts[i] / live.voters) * 100) : 0;
             const mine = live.mine?.includes(i);
             return voted || ended ? (
-              <div key={i} className={`relative overflow-hidden rounded-lg border px-4 py-3 ${mine ? "border-[color:var(--g-text)]" : "border-gray-100"}`}>
+              <div key={i} className={`relative overflow-hidden rounded-xl border px-4 py-3.5 ${mine ? "border-[color:var(--g-text)]" : "border-gray-100"}`}>
                 <div className="absolute inset-y-0 left-0 bg-[color:var(--g-soft)] transition-all duration-700" style={{ width: `${pct}%` }} />
                 <div className="relative flex items-center justify-between text-sm"><span className="flex items-center gap-2">{mine && <Icon name="check" className="w-4 h-4 text-[color:var(--g-text)]" strokeWidth={2.5} />}{o}</span><span className="text-gray-500 tabular-nums">{pct}%</span></div>
               </div>
             ) : (
-              <button key={i} onClick={() => toggle(i)} className={`w-full text-left rounded-lg border px-4 py-3 text-sm flex items-center gap-3 transition ${sel.includes(i) ? "border-[color:var(--g-text)] bg-[color:var(--g-soft)] text-[color:var(--g-text)]" : "border-gray-200"}`}>
+              <button key={i} onClick={() => toggle(i)} className={`w-full text-left rounded-xl border px-4 py-3.5 text-sm flex items-center gap-3 transition ${sel.includes(i) ? "border-[color:var(--g-text)] bg-[color:var(--g-soft)] text-[color:var(--g-text)]" : "border-gray-200"}`}>
                 <span className={`w-5 h-5 ${live.multi ? "rounded" : "rounded-full"} border flex items-center justify-center ${sel.includes(i) ? "bg-[color:var(--g-primary)] border-[color:var(--g-text)] text-white" : "border-gray-300"}`}>{sel.includes(i) && <Icon name="check" className="w-3 h-3" strokeWidth={3} />}</span>{o}
               </button>
             );
@@ -315,9 +374,9 @@ function QuizView({ code, pid, profile, live, reload }: { code: string; pid: str
     try { await api(`/api/g/${code}/respond`, { body: { pid, name: profile.name, interactionId: live.id, answer: sel } }); toast(t("已提交")); reload(); }
     catch (e) { toast((e as Error).message, "error"); }
   }
-  if (live.phase === "idle") return <EmptyState icon="quiz" title={t("测验即将开始")} desc={t("共 {n} 道题，答对越快得分越高。请等待主持人开始。", { n: live.total })} />;
+  if (live.phase === "idle") return <GuestEmpty icon="quiz" title={t("测验即将开始")} desc={t("共 {n} 道题，答对越快得分越高。请等待主持人开始。", { n: live.total })} />;
   if (live.phase === "finished") return (
-    <div className="p-4"><div className="bg-white rounded-xl p-6 shadow-sm text-center">
+    <div className="p-4"><div className="g-in g-card p-6 text-center">
       <div className="text-sm text-gray-500">{t("测验结束")}</div>
       <div className="text-4xl font-bold text-[color:var(--g-text)] mt-2">{live.myTotal ?? 0}<span className="text-base font-normal text-gray-500"> {t("分")}</span></div>
       <div className="text-sm text-gray-500 mt-1">{live.myRank ? t("排名第 {n}", { n: live.myRank }) : t("未参与作答")}</div>
@@ -328,7 +387,7 @@ function QuizView({ code, pid, profile, live, reload }: { code: string; pid: str
   const answered = !!live.mine;
   const multi = q?.multi;
   return (
-    <div className="p-4"><div className="bg-white rounded-xl p-5 shadow-sm">
+    <div className="p-4"><div className="g-in g-card p-5">
       <div className="flex items-center justify-between text-xs text-gray-500"><span>{t("第 {a} / {b} 题", { a: live.currentQ + 1, b: live.total })}{multi ? ` · ${t("多选")}` : ""}</span>{live.phase === "question" && <span className={`text-lg font-semibold tabular-nums ${left <= 5 ? "text-red-500" : "text-[color:var(--g-text)]"}`}>{left}s</span>}</div>
       <div className="text-[17px] font-medium text-gray-900 mt-2 leading-snug">{q?.text}</div>
       <div className="mt-5 space-y-2.5">
@@ -338,7 +397,7 @@ function QuizView({ code, pid, profile, live, reload }: { code: string; pid: str
           const reveal = live.phase === "reveal";
           return (
             <button key={i} disabled={answered || reveal || left <= 0} onClick={() => setSel(multi ? (sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i]) : [i])}
-              className={`w-full text-left rounded-lg border px-4 py-3 text-sm flex items-center gap-3 ${reveal && isC ? "border-emerald-400 bg-emerald-50" : reveal && mine ? "border-red-300 bg-red-50" : mine ? "border-[color:var(--g-text)] bg-[color:var(--g-soft)]" : "border-gray-200"}`}>
+              className={`w-full text-left rounded-xl border px-4 py-3.5 text-sm flex items-center gap-3 ${reveal && isC ? "border-emerald-400 bg-emerald-50" : reveal && mine ? "border-red-300 bg-red-50" : mine ? "border-[color:var(--g-text)] bg-[color:var(--g-soft)]" : "border-gray-200"}`}>
               <b className="text-gray-500 w-4">{String.fromCharCode(65 + i)}</b><span className="flex-1">{o}</span>
               {reveal && isC && <Icon name="check" className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />}
             </button>
@@ -363,7 +422,7 @@ function OpenView({ code, pid, profile, live, reload, ended }: { code: string; p
   }
   return (
     <div className="p-4 space-y-3">
-      <div className="bg-white rounded-xl p-5 shadow-sm">
+      <div className="g-in g-card p-5">
         <div className="text-[17px] font-medium text-gray-900 leading-snug">{live.prompt}</div>
         {!ended && (
           <form onSubmit={submit} className="mt-4 space-y-3">
@@ -374,7 +433,7 @@ function OpenView({ code, pid, profile, live, reload, ended }: { code: string; p
       </div>
       <div className="text-xs text-gray-500 px-1">{t("{n} 条回答", { n: live.count })}</div>
       <ul className="space-y-2">{live.responses.map((r: Any) => (
-        <li key={r.id} className="bg-white rounded-lg px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"><div className="text-xs text-gray-500">{r.nickname}{r.mine && " · 我"}</div><div className="text-sm text-gray-900 mt-1 break-words">{r.text}</div></li>
+        <li key={r.id} className="g-in g-card px-4 py-3.5"><div className="text-xs text-gray-500">{r.nickname}{r.mine && " · 我"}</div><div className="text-sm text-gray-900 mt-1 break-words">{r.text}</div></li>
       ))}</ul>
     </div>
   );
@@ -403,7 +462,7 @@ function RateView({ code, pid, profile, live, reload, ended, theme }: { code: st
   const unit = (v: number) => (live.scale === "star" ? t("{n} 星", { n: v }) : t("{n} 分", { n: v }));
   return (
     <div className="p-4 space-y-3">
-      <div className="bg-white rounded-xl p-5 shadow-sm">
+      <div className="g-in g-card p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="text-[17px] font-medium text-gray-900 leading-snug">{live.title}</div>
           {closed ? <span className="chip bg-gray-100 text-gray-600 shrink-0">{t("评分已结束")}</span> : submitted ? <span className="chip bg-emerald-50 text-emerald-700 shrink-0">{t("已提交")}</span> : null}

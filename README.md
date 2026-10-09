@@ -119,7 +119,7 @@ Env vars (Vercel project `quiz-online-ji`): `DATABASE_URL` (Neon), `JWT_SECRET`.
 | `/dashboard/users` | 用户管理（超级管理员）|
 | `/dashboard/profile` | 个人信息：昵称、修改密码 |
 | `/help` | 帮助中心（按角色）|
-| `/g/{hash}` | 嘉宾端（手机）|
+| `/g/{hash}` | 嘉宾端（手机全屏；电脑/平板 ≥768px 为居中卡片 + 主题色背景；渐变主题头部、药丸式提问栏、渐变头像、平滑切换动画，尊重「减少动态效果」）|
 | `/s/{hash}` | 投屏端（大屏）|
 | `/embed/{hash}` | iframe 嵌入用嘉宾端 |
 | `/r/{hash}` | 只读报告分享 |
@@ -137,7 +137,7 @@ Env vars (Vercel project `quiz-online-ji`): `DATABASE_URL` (Neon), `JWT_SECRET`.
 
 ## 活动状态快捷控制
 - 状态 `qoj_events.status`：`upcoming` 未开始 / `live` 进行中 / `ended` 已结束（已结束时嘉宾端关闭提问、作答、评分）。
-- `src/components/console/StatusControl.tsx`：控制台顶部状态标签（点开为三态下拉）+ 随状态变化的主按钮（开始活动 / 结束活动〔确认框〕/ 重新开放）；「我的活动」卡片右下角同样的快捷按钮 + ⋯ 菜单。改后 toast，并重新加载；嘉宾端、投屏端下次轮询生效；「设置 → 功能设置」的活动状态读同一字段，保持同步。
+- `src/components/console/StatusControl.tsx`：控制台顶部状态标签（点开为三态下拉）+ 随状态变化的主按钮（开始活动 = 紫色主按钮；结束活动〔确认框，仅确认按钮为红色〕/ 重新开放 = 中性描边按钮）；「我的活动」卡片右下角为安静的灰色描边小按钮 + ⋯ 菜单。改后 toast，并重新加载；嘉宾端、投屏端下次轮询生效；「设置 → 功能设置」的活动状态读同一字段，保持同步。
 - 权限（`PATCH /api/events/[id]` 服务端校验）：活动管理员（owner）/ 超级管理员可设任意状态；主持人只能设 `live` / `ended`（开始、结束、重新开放）；审核员 403。
 
 ## 评分（rate）
@@ -158,7 +158,7 @@ Env vars (Vercel project `quiz-online-ji`): `DATABASE_URL` (Neon), `JWT_SECRET`.
 每个活动可配置敏感词、最少字数、每分钟提问上限；重复内容和链接自动标记。命中规则的问题即使开启「自动审核」也进入「待审核」，并显示原因标签。
 
 ## Themes
-`src/lib/palette.ts` 从主题色推导整套配色（背景、卡片、文字、次要文字、边框、强调色、徽章、悬停），按 WCAG 对比度自动加深/选择黑白文字；投屏端 7 个预设 + 自定义，嘉宾端 6 个预设 + 自定义。`?theme=orange` 或 `?theme=%23ffd400` 可临时预览。
+`src/lib/palette.ts` 从主题色推导整套配色（背景、卡片、文字、次要文字、边框、强调色、徽章、悬停），按 WCAG 对比度自动加深/选择黑白文字；投屏端 7 个预设 + 自定义，嘉宾端 6 个预设 + 自定义（电脑端卡片背后的柔和背景 `--g-backdrop*`、卡片边框 `--g-frame-border` 也由同一主题色推导；`/embed` 保持全宽不加卡片）。`?theme=orange` 或 `?theme=%23ffd400` 可临时预览。
 
 ## Deploy
 代码托管在 GitHub（`olojiang/quiz-online-ji`）；生产部署直接从目录上传（CLI 的 `--token` 与代理 token 不兼容，使用 REST API 上传）：

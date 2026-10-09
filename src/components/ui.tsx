@@ -71,6 +71,7 @@ const P: Record<string, string> = {
   danmu: "M4 5h16v14H4zM7 9h7M7 12h10M7 15h5",
   lottery: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
   flag: "M5 21V4h11l-1.5 4L16 12H5",
+  stop: "M7 7h10v10H7z",
   calendar: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
   mic: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3",

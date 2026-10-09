@@ -119,7 +119,13 @@ export function screenVars(v: string | undefined) {
   } as Record<string, string>;
 }
 
-export interface GuestPalette { primary: string; on: string; hover: string; text: string; soft: string; softBorder: string; page: string; headerMuted: string }
+export interface GuestPalette {
+  primary: string; on: string; hover: string; text: string; soft: string; softBorder: string; page: string; headerMuted: string;
+  /** desktop-only framing: backdrop behind the centred card (top band → base), card edge, muted text on the backdrop */
+  backdropTop: string; backdrop: string; frameBorder: string; backdropMuted: string;
+  /** header gradient end (deeper, same hue) and a light glow tint for decorative shapes */
+  primary2: string; glow: string;
+}
 
 /**
  * Guest (mobile) palette: header/buttons keep the theme hue but are darkened until white text ≥ 4.5:1;
@@ -135,9 +141,17 @@ export function guestPalette(v: string | undefined): GuestPalette {
     primary, on: WHITE, hover: shade(primary, 0.07), text,
     soft, softBorder: mix(base, WHITE, 0.55), page: mix(base, "#f5f6f8", 0.96),
     headerMuted: mix(WHITE, primary, 0.12),
+    primary2: shade(primary, 0.09, -0.06),
+    glow: mix(base, WHITE, 0.45),
+    backdropTop: mix(base, WHITE, 0.72),
+    backdrop: mix(base, "#e8ebf0", 0.87),
+    frameBorder: rgba(primary, 0.16),
+    backdropMuted: darkenFor(withHue(base, 0.14, 0.42), mix(base, "#e8ebf0", 0.87), 4.6),
   };
 }
 export function guestVars(v: string | undefined) {
   const p = guestPalette(v);
-  return { "--g-primary": p.primary, "--g-on": p.on, "--g-hover": p.hover, "--g-text": p.text, "--g-soft": p.soft, "--g-soft-border": p.softBorder, "--g-page": p.page, "--g-header-muted": p.headerMuted } as Record<string, string>;
+  return { "--g-primary": p.primary, "--g-on": p.on, "--g-hover": p.hover, "--g-text": p.text, "--g-soft": p.soft, "--g-soft-border": p.softBorder, "--g-page": p.page, "--g-header-muted": p.headerMuted,
+    "--g-backdrop-top": p.backdropTop, "--g-backdrop": p.backdrop, "--g-frame-border": p.frameBorder, "--g-backdrop-muted": p.backdropMuted,
+    "--g-primary-2": p.primary2, "--g-glow": p.glow } as Record<string, string>;
 }
