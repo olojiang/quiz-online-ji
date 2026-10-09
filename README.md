@@ -170,7 +170,7 @@ Env vars (Vercel project `quiz-online-ji`): `DATABASE_URL` (Neon), `JWT_SECRET`.
 每个活动可配置敏感词、最少字数、每分钟提问上限；重复内容和链接自动标记。命中规则的问题即使开启「自动审核」也进入「待审核」，并显示原因标签。
 
 ## Themes
-`src/lib/palette.ts` 从主题色推导整套配色（背景、卡片、文字、次要文字、边框、强调色、徽章、悬停），按 WCAG 对比度自动加深/选择黑白文字；投屏端 7 个预设 + 自定义，嘉宾端 6 个预设 + 自定义（电脑端卡片背后的柔和背景 `--g-backdrop*`、卡片边框 `--g-frame-border` 也由同一主题色推导；`/embed` 保持全宽不加卡片）。`?theme=orange` 或 `?theme=%23ffd400` 可临时预览。
+`src/lib/palette.ts` 从主题色推导整套配色（背景、卡片、文字、次要文字、边框、强调色、徽章、悬停），按 WCAG 对比度自动加深/选择黑白文字；投屏端 10 个预设 + 自定义，嘉宾端 10 个预设 + 自定义。其中 **黑金**（`blackgold`：近黑底、香槟金强调、金色渐变标题/二维码金框/金色彩带）、**墨绿**（`inkgreen`：墨绿底、玉色/鼠尾草强调、米白文字）、**暖橙**（`warmorange`：琥珀暖橙 + 奶油色卡片，比「橙色」更柔和）、**黑白灰**（键名沿用 `gray`，原「灰色」浅色主题改为黑白灰极简：白/浅灰底、黑色文字与按钮、灰色细线、无彩色）为手工精调整套配色（`SCREEN_SPECS` / `GUEST_SPECS`），其余预设与自定义色仍自动推导；已保存的旧键名全部保持可用（电脑端卡片背后的柔和背景 `--g-backdrop*`、卡片边框 `--g-frame-border` 也由同一主题色推导；`/embed` 保持全宽不加卡片）。`?theme=orange` 或 `?theme=%23ffd400` 可临时预览。
 
 ## Deploy
 代码托管在 GitHub（`olojiang/quiz-online-ji`）；生产部署直接从目录上传（CLI 的 `--token` 与代理 token 不兼容，使用 REST API 上传）：

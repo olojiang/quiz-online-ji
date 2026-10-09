@@ -83,17 +83,17 @@ export default function ScreenPage() {
         <Welcome name={ev.name} desc={ev.description} url={guestUrl} waiting={channel !== "welcome" && !live} />
       ) : live.type === "lottery" && live.phase !== "idle" ? (
         // drawing / revealed: full-width stage; a small QR stays in the corner
-        <LotteryScreen live={live} card="var(--s-card)" guestQR={guestUrl ? <div className="absolute right-8 top-8 flex flex-col items-center gap-2 opacity-90"><div className="bg-white rounded-xl p-2 shadow-lg"><QR text={guestUrl} size={110} /></div><span className="text-base font-medium">{t("扫码参与")}</span></div> : null} />
+        <LotteryScreen live={live} card="var(--s-card)" guestQR={guestUrl ? <div className="absolute right-8 top-8 flex flex-col items-center gap-2 opacity-90"><div className="bg-white rounded-xl p-2 shadow-lg" style={{ outline: "3px solid var(--s-qr-ring)", outlineOffset: 5 }}><QR text={guestUrl} size={110} /></div><span className="text-base font-medium">{t("扫码参与")}</span></div> : null} />
       ) : (
         <div className="h-full flex">
           {/* left column */}
           <aside className="w-[260px] shrink-0 flex flex-col items-center pt-[110px] px-6">
-            {guestUrl ? <div className="bg-white rounded-2xl p-3 shadow-lg"><QR text={guestUrl} size={190} /></div> : <div className="w-[214px] h-[214px] rounded-2xl border-2 border-dashed border-current opacity-60 flex items-center justify-center text-center text-sm px-4">{t("嘉宾链接未生成")}</div>}
+            {guestUrl ? <div className="bg-white rounded-2xl p-3 shadow-lg" style={{ outline: "3px solid var(--s-qr-ring)", outlineOffset: 6 }}><QR text={guestUrl} size={190} /></div> : <div className="w-[214px] h-[214px] rounded-2xl border-2 border-dashed border-current opacity-60 flex items-center justify-center text-center text-sm px-4">{t("嘉宾链接未生成")}</div>}
             <div className="mt-8 text-center text-[26px] font-semibold leading-[2.4]">{t("扫描二维码参与")}<br />{t("嘉宾互动")}</div>
           </aside>
           {/* content */}
           <main className="flex-1 min-w-0 pr-8 pb-28 flex flex-col">
-            <div className="h-[110px] flex items-center gap-3 text-[30px]">
+            <div className="h-[110px] flex items-center gap-3 text-[30px]" style={{ color: "var(--s-head)" }}>
               <Icon name={live.type === "qa" ? "qa" : live.type === "poll" ? "poll" : live.type === "quiz" ? "quiz" : live.type === "rate" ? "rate" : live.type === "lottery" ? "lottery" : "open"} className="w-9 h-9" />
               {live.type === "qa" ? (
                 <div className="relative">
@@ -151,9 +151,9 @@ function Welcome({ name, desc, url, waiting }: { name: string; desc?: string; ur
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-10 animate-fade-up">
       <div className="text-[color:var(--s-muted)] text-2xl font-semibold tracking-[0.3em]">WELCOME</div>
-      <h1 className="mt-6 text-[64px] font-bold leading-tight max-w-[80%] drop-shadow-sm">{name}</h1>
+      <h1 className="s-title mt-6 text-[64px] font-bold leading-tight max-w-[80%] drop-shadow-sm">{name}</h1>
       {desc && <p className="mt-4 text-2xl text-[color:var(--s-muted)] max-w-[70%] whitespace-pre-line">{desc}</p>}
-      {url ? <div className="mt-12 bg-white rounded-3xl p-5 shadow-2xl"><QR text={url} size={260} /></div> : <div className="mt-12 text-2xl">{t("嘉宾链接未生成")}</div>}
+      {url ? <div className="mt-12 bg-white rounded-3xl p-5 shadow-2xl" style={{ outline: "3px solid var(--s-qr-ring)", outlineOffset: 8 }}><QR text={url} size={260} /></div> : <div className="mt-12 text-2xl">{t("嘉宾链接未生成")}</div>}
       <div className="mt-8 text-3xl font-semibold">{t("扫描二维码参与嘉宾互动")}</div>
       {waiting && <div className="mt-6 text-[color:var(--s-muted)] text-2xl font-medium">{t("互动即将开始…")}</div>}
     </div>
@@ -169,8 +169,8 @@ function QAScreen({ live, items, card }: { live: Any; items: Any[]; card: string
       {f && (
         <div key={f.id} className="animate-fade-up rounded-sm px-10 py-9 shadow-2xl border-l-[10px]" style={{ background: "var(--s-feat-bg)", color: "var(--s-feat-fg)", borderColor: "var(--s-feat-accent)" }}>
           <div className="flex items-center gap-4">
-            <span className="chip text-xl px-4 py-1.5 font-semibold text-white" style={{ background: "var(--s-feat-accent)" }}>{t("正在讨论")}</span>
-            <Avatar name={f.nickname} size={48} bg="var(--s-feat-accent)" fg="#ffffff" />
+            <span className="chip text-xl px-4 py-1.5 font-semibold" style={{ background: "var(--s-feat-accent)", color: "var(--s-feat-on)" }}>{t("正在讨论")}</span>
+            <Avatar name={f.nickname} size={48} bg="var(--s-feat-accent)" fg="var(--s-feat-on)" />
             <span className="text-2xl" style={{ color: "var(--s-feat-muted)" }}>{f.nickname}{FEATURE_GROUPS && f.group_name && <span> · {f.group_name}</span>}</span>
             <span className="ml-auto flex items-center gap-2 text-2xl" style={{ color: "var(--s-feat-muted)" }}><Icon name="like" className="w-8 h-8" />{f.likes}</span>
           </div>
@@ -178,7 +178,7 @@ function QAScreen({ live, items, card }: { live: Any; items: Any[]; card: string
         </div>
       )}
       {items.map((q) => (
-        <div key={q.id} className="rounded-sm px-8 py-7 transition-all" style={{ background: card, color: "var(--s-card-fg)" }}>
+        <div key={q.id} className="rounded-sm px-8 py-7 transition-all" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
           <div className="flex items-center gap-5">
             <Avatar name={q.nickname} size={54} bg="var(--s-badge-bg)" fg="var(--s-badge-fg)" />
             <span className="text-[22px]">{q.nickname}{FEATURE_GROUPS && q.group_name && <span style={{ color: "var(--s-card-muted)" }}> · {q.group_name}</span>}</span>
@@ -199,7 +199,7 @@ function QAScreen({ live, items, card }: { live: Any; items: Any[]; card: string
 function PollScreen({ live, card }: { live: Any; card: string }) {
   const max = Math.max(1, ...live.counts);
   return (
-    <div className="rounded-sm p-10" style={{ background: card, color: "var(--s-card-fg)" }}>
+    <div className="rounded-sm p-10" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
       <div className="flex items-start justify-between gap-6"><h2 className="text-[40px] font-semibold leading-snug">{live.question}</h2><span className="text-2xl text-[color:var(--s-muted)] shrink-0 flex items-center gap-2"><Icon name="users" className="w-7 h-7" />{live.voters}</span></div>
       <div className="mt-10 space-y-7">
         {live.options.map((o: string, i: number) => {
@@ -207,7 +207,7 @@ function PollScreen({ live, card }: { live: Any; card: string }) {
           return (
             <div key={i}>
               <div className="flex justify-between text-[26px] mb-2"><span><b className="text-[color:var(--s-muted)] mr-3">{String.fromCharCode(65 + i)}</b>{o}</span><span className="tabular-nums">{live.counts[i]} · {pct}%</span></div>
-              <div className="h-8 rounded-full bg-[color:var(--s-track)] overflow-hidden"><div className="h-full rounded-full bg-[color:var(--s-bar)] transition-all duration-700" style={{ width: `${(live.counts[i] / max) * 100}%` }} /></div>
+              <div className="h-8 rounded-full bg-[color:var(--s-track)] overflow-hidden"><div className="h-full rounded-full transition-all duration-700" style={{ background: "var(--s-bar-grad)", width: `${(live.counts[i] / max) * 100}%` }} /></div>
             </div>
           );
         })}
@@ -227,7 +227,7 @@ function QuizScreen({ live, card }: { live: Any; card: string }) {
   const max = Math.max(1, ...(live.dist || [1]));
   return (
     <div className="grid grid-cols-[1fr_380px] gap-6">
-      <div className="rounded-sm p-10" style={{ background: card, color: "var(--s-card-fg)" }}>
+      <div className="rounded-sm p-10" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
         <div className="flex items-center justify-between text-2xl text-[color:var(--s-muted)]"><span>{t("第 {a} / {b} 题", { a: live.currentQ + 1, b: live.total })}</span>{!reveal && <span className={`text-[56px] font-bold tabular-nums ${left <= 5 ? "text-red-500" : ""}`}>{left}</span>}</div>
         <h2 className="text-[40px] font-semibold leading-snug mt-4">{q?.text}</h2>
         <div className="mt-8 grid grid-cols-2 gap-5">
@@ -251,7 +251,7 @@ function QuizScreen({ live, card }: { live: Any; card: string }) {
 function Leaderboard({ rows, card, title, small }: { rows: Any[]; card: string; title: string; small?: boolean }) {
   const t = useT();
   return (
-    <div className={`rounded-sm ${small ? "p-6" : "p-10 max-w-3xl mx-auto"}`} style={{ background: card, color: "var(--s-card-fg)" }}>
+    <div className={`rounded-sm ${small ? "p-6" : "p-10 max-w-3xl mx-auto"}`} style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
       <div className={`${small ? "text-2xl" : "text-[40px]"} font-semibold mb-6 flex items-center gap-3`}><Icon name="quiz" className={small ? "w-7 h-7" : "w-10 h-10"} />{title}</div>
       {rows.length === 0 ? <div className="text-[color:var(--s-muted)] text-xl">{t("暂无得分")}</div> : (
         <ol className="space-y-3">
@@ -272,11 +272,11 @@ function OpenScreen({ live, items, card }: { live: Any; items: Any[]; card: stri
   const t = useT();
   return (
     <div>
-      <div className="rounded-sm px-8 py-6 flex items-center justify-between" style={{ background: card, color: "var(--s-card-fg)" }}><h2 className="text-[34px] font-semibold">{live.prompt}</h2><span className="text-2xl text-[color:var(--s-muted)] flex items-center gap-2"><Icon name="users" className="w-7 h-7" />{live.count}</span></div>
+      <div className="rounded-sm px-8 py-6 flex items-center justify-between" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}><h2 className="text-[34px] font-semibold">{live.prompt}</h2><span className="text-2xl text-[color:var(--s-muted)] flex items-center gap-2"><Icon name="users" className="w-7 h-7" />{live.count}</span></div>
       {items.length === 0 ? <div className="text-center text-2xl text-[color:var(--s-muted)] mt-20">{t("扫码分享你的观点")}</div> : (
         <div className="mt-4 grid grid-cols-2 gap-4">
           {items.map((r) => (
-            <div key={r.id} className="animate-fade-up rounded-sm px-6 py-5" style={{ background: card, color: "var(--s-card-fg)" }}>
+            <div key={r.id} className="animate-fade-up rounded-sm px-6 py-5" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
               <div className="text-lg text-[color:var(--s-muted)]">{r.nickname}</div>
               <div className="text-[26px] mt-1 leading-snug break-words">{r.text}</div>
             </div>
@@ -291,8 +291,8 @@ function RateScreen({ live, card, theme }: { live: Any; card: string; theme?: st
   const t = useT();
   const p = screenPalette(theme);
   // stars: warm amber on dark cards, the theme accent on light cards; both ≥ 3:1 against the card
-  const starOn = p.mode === "dark" ? "#fcd34d" : p.accent;
-  const starOff = p.mode === "dark" ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.32)";
+  const starOn = p.star;
+  const starOff = p.starOff;
   const n = live.items.length;
   const cols = n === 1 ? 1 : n <= 4 ? 2 : 3;
   const big = n === 1 ? "text-[120px]" : n <= 2 ? "text-[96px]" : n <= 4 ? "text-[64px]" : "text-[52px]";
@@ -306,7 +306,7 @@ function RateScreen({ live, card, theme }: { live: Any; card: string; theme?: st
           const top = Math.max(1, ...it.dist);
           const starV = it.avg == null ? null : live.scale === "star" ? it.avg : (it.avg / live.max) * 5;
           return (
-            <div key={i} className={`rounded-sm min-h-0 ${n <= 2 ? "p-9" : "p-6"} ${n === 1 ? "grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-10 items-stretch" : "flex flex-col"}`} style={{ background: card, color: "var(--s-card-fg)" }}>
+            <div key={i} className={`rounded-sm min-h-0 ${n <= 2 ? "p-9" : "p-6"} ${n === 1 ? "grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-10 items-stretch" : "flex flex-col"}`} style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
               <div className={`min-w-0 ${n === 1 ? "self-end" : ""}`}>
                 <div className={`${n <= 2 ? "text-[34px]" : "text-[26px]"} font-semibold leading-tight truncate`}>{it.name}</div>
                 <div className="flex items-end gap-3 mt-3">
@@ -335,7 +335,7 @@ function RateScreen({ live, card, theme }: { live: Any; card: string; theme?: st
       {comments.length > 0 && (
         <div className="grid grid-cols-2 gap-4 shrink-0">
           {comments.map((c: Any) => (
-            <div key={c.id} className="animate-fade-up rounded-sm px-6 py-4" style={{ background: card, color: "var(--s-card-fg)" }}>
+            <div key={c.id} className="animate-fade-up rounded-sm px-6 py-4" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
               <div className="text-lg" style={{ color: "var(--s-card-muted)" }}>{c.nickname || t("匿名嘉宾")}</div>
               <div className="text-[24px] mt-1 leading-snug break-words line-clamp-2">{c.text}</div>
             </div>

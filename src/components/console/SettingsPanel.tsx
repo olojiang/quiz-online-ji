@@ -134,7 +134,7 @@ function SwitchRow({ title, desc, checked, onChange, disabled }: { title: string
   );
 }
 
-function ThemePicker({ title, presets, value, onChange }: { title: string; presets: Record<string, { label: string; color: string }>; value: string; onChange: (v: string) => void }) {
+function ThemePicker({ title, presets, value, onChange }: { title: string; presets: Record<string, { label: string; color: string; swatch?: string }>; value: string; onChange: (v: string) => void }) {
   const t = useT();
   const [open, setOpen] = useState(true);
   const custom = isHex(value);
@@ -154,7 +154,7 @@ function ThemePicker({ title, presets, value, onChange }: { title: string; prese
           </label>
           {Object.entries(presets).map(([k, tt]) => (
             <button type="button" key={k} onClick={() => onChange(k)} className="flex flex-col items-center gap-2">
-              <span className={`w-full h-11 rounded-md ${value === k ? "ring-2 ring-offset-2 ring-brand-500" : ""}`} style={{ background: tt.color }} />
+              <span className={`w-full h-11 rounded-md shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] ${value === k ? "ring-2 ring-offset-2 ring-brand-500" : ""}`} style={{ background: tt.swatch || tt.color }} />
               <span className={`flex items-center gap-1.5 text-sm ${value === k ? "text-brand-600" : "text-gray-700"}`}><Radio on={value === k} />{t(tt.label)}</span>
             </button>
           ))}

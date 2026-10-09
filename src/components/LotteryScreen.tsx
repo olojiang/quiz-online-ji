@@ -28,7 +28,7 @@ function Confetti({ seed }: { seed: number }) {
         const delay = ((i * 53) % 90) / 100;
         const dur = 2.4 + ((i * 29) % 16) / 10;
         const size = 8 + ((i * 7) % 9);
-        return <span key={i} style={{ left: `${left}%`, width: size, height: size * 0.45, background: CONFETTI[i % CONFETTI.length], animationDelay: `${delay}s`, animationDuration: `${dur}s` }} />;
+        return <span key={i} style={{ left: `${left}%`, width: size, height: size * 0.45, background: `var(--s-cf${i % CONFETTI.length}, ${CONFETTI[i % CONFETTI.length]})`, animationDelay: `${delay}s`, animationDuration: `${dur}s` }} />;
       })}
     </div>
   );
@@ -61,7 +61,7 @@ export function LotteryScreen({ live, card, guestQR }: { live: Any; card: string
       <div className="h-full flex flex-col">
         <div className="grid gap-5" style={{ gridTemplateColumns: `repeat(${Math.min(3, live.prizes.length)}, minmax(0, 1fr))` }}>
           {live.prizes.map((p: Any, i: number) => (
-            <div key={i} className="lt-prize rounded-sm p-8 relative overflow-hidden animate-fade-up" style={{ background: card, color: "var(--s-card-fg)", animationDelay: `${i * 80}ms` }}>
+            <div key={i} className="lt-prize rounded-sm p-8 relative overflow-hidden animate-fade-up" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)", animationDelay: `${i * 80}ms` }}>
               <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full opacity-[0.12]" style={{ background: "var(--s-card-fg)" }} />
               <Icon name="lottery" className="w-10 h-10 opacity-80" />
               <div className="text-[40px] font-bold mt-4 leading-tight truncate">{p.name}</div>
@@ -97,7 +97,7 @@ export function LotteryScreen({ live, card, guestQR }: { live: Any; card: string
         <>
           <div className="mt-16 w-full flex-1 min-h-0 flex flex-wrap items-center justify-center content-center gap-6">
             {names.map((n, i) => (
-              <div key={i} className={`lt-slot rounded-2xl flex items-center justify-center font-bold tabular-nums ${slots <= 1 ? "w-[760px] h-[300px] text-[130px]" : slots <= 3 ? "w-[460px] h-[220px] text-[80px]" : slots <= 6 ? "w-[380px] h-[170px] text-[60px]" : "w-[300px] h-[130px] text-[44px]"}`} style={{ background: card, color: "var(--s-card-fg)" }}>
+              <div key={i} className={`lt-slot rounded-2xl flex items-center justify-center font-bold tabular-nums ${slots <= 1 ? "w-[760px] h-[300px] text-[130px]" : slots <= 3 ? "w-[460px] h-[220px] text-[80px]" : slots <= 6 ? "w-[380px] h-[170px] text-[60px]" : "w-[300px] h-[130px] text-[44px]"}`} style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>
                 <span className={`lt-roll truncate px-6 ${landing ? "lt-roll-slow" : ""}`} key={n + i}>{n}</span>
               </div>
             ))}
@@ -110,7 +110,7 @@ export function LotteryScreen({ live, card, guestQR }: { live: Any; card: string
           <div className="mt-8 w-full flex-1 min-h-0 grid gap-6 content-center" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, ${cols === 1 ? "760px" : cols <= 3 ? "560px" : "1fr"}))`, justifyContent: "center" }}>
             {shown.map((w, i) => (
               <div key={w.id} className="lt-win rounded-2xl px-8 py-8 flex flex-col items-center justify-center shadow-2xl border-t-[10px]" style={{ background: "var(--s-feat-bg)", color: "var(--s-feat-fg)", borderColor: "var(--s-feat-accent)", animationDelay: `${i * 120}ms` }}>
-                <Avatar name={w.nickname} size={shown.length <= 3 ? 96 : 64} bg="var(--s-feat-accent)" fg="#ffffff" />
+                <Avatar name={w.nickname} size={shown.length <= 3 ? 96 : 64} bg="var(--s-feat-accent)" fg="var(--s-feat-on)" />
                 <div className={`${big} font-bold leading-tight mt-4 max-w-full truncate`}>{w.nickname}</div>
                 <div className="text-2xl mt-2 font-medium" style={{ color: "var(--s-feat-accent)" }}>{w.prize_name}</div>
               </div>
@@ -118,7 +118,7 @@ export function LotteryScreen({ live, card, guestQR }: { live: Any; card: string
           </div>
           {others.length > 0 && (
             <div className="mt-8 max-w-[1500px] flex flex-wrap justify-center gap-3 text-xl">
-              {others.slice(0, 24).map((w) => <span key={w.id} className="rounded-full px-4 py-1.5" style={{ background: card, color: "var(--s-card-fg)" }}>{w.prize_name} · {w.nickname}</span>)}
+              {others.slice(0, 24).map((w) => <span key={w.id} className="rounded-full px-4 py-1.5" style={{ background: card, color: "var(--s-card-fg)", boxShadow: "inset 0 0 0 1px var(--s-card-line)" }}>{w.prize_name} · {w.nickname}</span>)}
               {others.length > 24 && <span className="px-2 py-1.5 text-[color:var(--s-muted)]">+{others.length - 24}</span>}
             </div>
           )}

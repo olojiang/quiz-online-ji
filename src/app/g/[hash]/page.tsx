@@ -76,7 +76,7 @@ export default function GuestPage() {
         <header className={`g-hero px-5 pt-5 pb-6 ${F("md:px-8 md:pt-7 md:pb-8 md:rounded-t-[20px]")}`}>
           <span className="g-hero-grain" aria-hidden />
           <div className="flex items-center gap-2"><AppLogo size={22} white /><div className="flex-1" /><LangSwitch dark /></div>
-          <h1 className={`mt-4 text-[22px] leading-tight font-semibold tracking-tight break-words ${F("md:mt-5 md:text-[28px]")}`}>{ev.name}</h1>
+          <h1 className={`g-hero-title mt-4 text-[22px] leading-tight font-semibold tracking-tight break-words ${F("md:mt-5 md:text-[28px]")}`}>{ev.name}</h1>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <span className="g-chip"><Icon name={view ? (TYPE_ICON[view.type] || "qa") : "mic"} className="w-3.5 h-3.5" />{view ? t(view.title) : t("等待互动开始")}</span>
             {ev.status === "live" && <span className="inline-flex items-center gap-1.5 text-xs text-[color:var(--g-header-muted)]"><span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />{t("进行中")}</span>}
@@ -123,7 +123,7 @@ function GAvatar({ name, size = 32 }: { name: string; size?: number }) {
   let h = 0;
   for (const c of name || "?") h = (h * 31 + c.charCodeAt(0)) >>> 0;
   const hue = h % 360;
-  return <Avatar name={name} size={size} bg={`linear-gradient(135deg, hsl(${hue} 62% 58%), hsl(${(hue + 35) % 360} 58% 42%))`} />;
+  return <Avatar name={name} size={size} bg={`var(--g-avatar, linear-gradient(135deg, hsl(${hue} 62% 58%), hsl(${(hue + 35) % 360} 58% 42%)))`} />;
 }
 
 /** Themed empty state: soft gradient medallion + friendly copy. */
@@ -132,7 +132,7 @@ function GuestEmpty({ icon, title, desc }: { icon: string; title: string; desc?:
     <div className="g-in flex flex-col items-center justify-center text-center py-16 px-8">
       <div className="relative mb-5">
         <div className="absolute inset-0 -m-3 rounded-full bg-[color:var(--g-soft)] blur-md" />
-        <div className="relative w-16 h-16 rounded-[22px] flex items-center justify-center text-white shadow-lg rotate-[-6deg]" style={{ background: "linear-gradient(135deg, var(--g-primary), var(--g-primary-2))" }}>
+        <div className="relative w-16 h-16 rounded-[22px] flex items-center justify-center text-[color:var(--g-icon-fg)] shadow-lg rotate-[-6deg]" style={{ background: "linear-gradient(135deg, var(--g-primary), var(--g-primary-2))" }}>
           <Icon name={icon} className="w-8 h-8 rotate-[6deg]" />
         </div>
       </div>
@@ -160,7 +160,7 @@ function JoinGate({ event, framed, initial, onDone, onCancel }: { event: Any; fr
           <span className="g-hero-grain" aria-hidden />
           <div className="flex items-center justify-between mb-8"><AppLogo size={30} white /><LangSwitch dark /></div>
           <div className="text-xs font-medium uppercase tracking-[0.18em] text-[color:var(--g-header-muted)]">{t("欢迎参加")}</div>
-          <h1 className="mt-2 text-[26px] font-semibold leading-tight tracking-tight break-words">{event.name}</h1>
+          <h1 className="g-hero-title mt-2 text-[26px] font-semibold leading-tight tracking-tight break-words">{event.name}</h1>
           {event.event_date && <div className="mt-3 inline-flex items-center gap-1.5 g-chip"><Icon name="calendar" className="w-3.5 h-3.5" />{String(event.event_date).slice(0, 10)}</div>}
         </div>
         <form className={`g-in g-card relative mx-4 -mt-12 p-6 space-y-5 ${F("md:mx-7 md:p-8")}`} onSubmit={(e) => { e.preventDefault(); if (name.trim() && (!FEATURE_GROUPS || group.trim())) onDone({ name: name.trim(), group: FEATURE_GROUPS ? group.trim() : initial?.group || "" }); }}>
@@ -447,7 +447,7 @@ function RateView({ code, pid, profile, live, reload, ended, theme }: { code: st
   const [comment, setComment] = useState<string>(live.mine?.comment || "");
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const starColor = guestPalette(theme).primary;
+  const starColor = guestPalette(theme).star;
   const closed = live.closed || ended;
   const submitted = !!live.mine && !editing;
   async function submit() {
@@ -543,7 +543,7 @@ function LotteryView({ live, profile }: { live: Any; pid: string; profile: Profi
           {byPrize.map((p: Any) => (
             <li key={p.i} className={`rounded-xl border px-4 py-3.5 ${live.prize === p.i && live.phase === "rolling" ? "border-[color:var(--g-soft-border)] bg-[color:var(--g-soft)]/50" : "border-gray-100"}`}>
               <div className="flex items-center gap-3">
-                <span className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: "linear-gradient(135deg, var(--g-primary), var(--g-primary-2))" }}><Icon name="lottery" className="w-[18px] h-[18px]" /></span>
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[color:var(--g-icon-fg)] shrink-0" style={{ background: "linear-gradient(135deg, var(--g-primary), var(--g-primary-2))" }}><Icon name="lottery" className="w-[18px] h-[18px]" /></span>
                 <div className="min-w-0 flex-1">
                   <div className="text-[15px] font-semibold text-gray-900 truncate">{p.name} <span className="font-normal text-gray-500">× {p.count}</span></div>
                   {p.desc && <div className="text-xs text-gray-500 mt-0.5 break-words">{p.desc}</div>}
